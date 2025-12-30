@@ -70,10 +70,15 @@ create table filings (
   id uuid default uuid_generate_v4() primary key,
   user_id uuid references auth.users not null,
   loan_id uuid references loans(id), -- Link to Loan
+  document_id uuid references documents(id), -- Link to source document
   reference_id text not null,
   entity_name text not null,
   rc_number text,
   filing_type text,
+  charge_amount numeric,
+  charge_currency text default 'NGN',
+  asset_description text,
+  metadata jsonb default '{}'::jsonb,
   status text default 'Pending', -- Pending, Submitted, Perfected, Query
   submission_date timestamp with time zone default timezone('utc'::text, now()),
   updated_at timestamp with time zone

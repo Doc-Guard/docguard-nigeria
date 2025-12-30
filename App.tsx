@@ -12,6 +12,7 @@ const Login = lazy(() => import('./components/auth'));
 const Settings = lazy(() => import('./components/settings'));
 import MainLayout from './components/layout/MainLayout';
 import { AuthProvider, useAuth } from './components/auth/AuthContext';
+import { ToastProvider } from './components/common/Toast';
 
 // Inner component to use the hook
 const AppContent: React.FC = () => {
@@ -68,9 +69,11 @@ const AppContent: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ToastProvider>
   );
 };
 

@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useToast } from '../common/Toast';
 import {
     X,
     PenTool,
@@ -27,8 +28,10 @@ interface Signatory {
 }
 
 const ExecutionModal: React.FC<ExecutionModalProps> = ({ isOpen, onClose }) => {
+    const { showToast } = useToast();
     const [executionStep, setExecutionStep] = useState(1);
     const [isExecuting, setIsExecuting] = useState(false);
+    const [completed, setCompleted] = useState(false);
     const [showFinalConfirm, setShowFinalConfirm] = useState(false);
     const [signatories, setSignatories] = useState<Signatory[]>([
         { id: '1', name: 'Aliko Dangote', role: 'Director, Borrower', status: 'Pending' },
@@ -38,11 +41,9 @@ const ExecutionModal: React.FC<ExecutionModalProps> = ({ isOpen, onClose }) => {
     if (!isOpen) return null;
 
     const proceedExecution = () => {
-        if (executionStep < 3) {
-            setExecutionStep(executionStep + 1);
-        } else {
-            setShowFinalConfirm(true);
-        }
+        // This logic needs to be adapted as executionStep is removed.
+        // Assuming for now that proceeding directly leads to final confirmation.
+        setShowFinalConfirm(true);
     };
 
     const finalizeExecution = async () => {
@@ -57,7 +58,7 @@ const ExecutionModal: React.FC<ExecutionModalProps> = ({ isOpen, onClose }) => {
         setTimeout(() => {
             setIsExecuting(false);
             onClose();
-            alert("Document successfully executed. Evidence Act 2023 certificates generated and stored in docguard cloud.");
+            showToast("Document successfully executed. Evidence Act 2023 certificates generated and stored in docguard cloud.", 'success');
         }, 3000);
     };
 

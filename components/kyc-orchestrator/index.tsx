@@ -11,8 +11,10 @@ import DocumentScanner from './DocumentScanner';
 import LivenessCheck from './LivenessCheck';
 import RiskScore from './RiskScore';
 import LoanSelector from '../common/LoanSelector';
+import { useToast } from '../common/Toast';
 
 const KYCOrchestrator: React.FC = () => {
+    const { showToast } = useToast();
     const [step, setStep] = useState(1);
     const [kycData, setKycData] = useState<any>({});
     const [completedSteps, setCompletedSteps] = useState<number[]>([]);
@@ -44,7 +46,7 @@ const KYCOrchestrator: React.FC = () => {
                     onClose={() => setIsLoanSelectorOpen(false)}
                     onSelect={(loan) => {
                         setLoanContext(loan);
-                        alert(`KYC initiated for loan: ${loan.borrower_name}`);
+                        showToast(`KYC initiated for loan: ${loan.borrower_name}`, 'success');
                     }}
                 />
 

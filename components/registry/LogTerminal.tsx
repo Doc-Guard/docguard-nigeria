@@ -12,9 +12,6 @@ interface LogTerminalProps {
 const LogTerminal: React.FC<LogTerminalProps> = ({ logs, isBotActive, progress }) => {
     const logEndRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [logs]);
 
     return (
         <div className="lg:col-span-2 space-y-6">

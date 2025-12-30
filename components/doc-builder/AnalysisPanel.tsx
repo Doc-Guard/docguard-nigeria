@@ -10,6 +10,7 @@ import {
     RefreshCw
 } from 'lucide-react';
 import { AnalysisResult, analyzeClause, rewriteClause } from '../../services/geminiService';
+import { useToast } from '../common/Toast';
 
 interface AnalysisPanelProps {
     clauseText: string;
@@ -18,6 +19,7 @@ interface AnalysisPanelProps {
 }
 
 const AnalysisPanel: React.FC<AnalysisPanelProps> = ({ clauseText, activeTemplate, onUpdateClause }) => {
+    const { showToast } = useToast();
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
     const [isRewriting, setIsRewriting] = useState(false);
@@ -29,9 +31,9 @@ const AnalysisPanel: React.FC<AnalysisPanelProps> = ({ clauseText, activeTemplat
         try {
             const result = await analyzeClause(clauseText, `Facility Agreement - ${activeTemplate}`);
             setAnalysis(result);
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
-            alert("AI analysis failed.");
+            showToast(`AI analysis failed: ${err.message}`, 'error');
         } finally {
             setIsAnalyzing(false);
         }

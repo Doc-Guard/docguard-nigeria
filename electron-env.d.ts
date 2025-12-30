@@ -19,7 +19,7 @@ interface Window {
         };
         saveFile: (content: string, defaultName: string) => Promise<{ success: boolean; filePath?: string; error?: string; canceled?: boolean }>;
         exportPDF: () => Promise<{ success: boolean; filePath?: string; error?: string; canceled?: boolean }>;
-        startRPA: (payload: { ref: string; entity: string }) => Promise<void>;
+        startRPA: (payload: { ref: string; entity: string; rcNumber?: string; filingId?: string }) => Promise<void>;
         onRPAUpdate: (callback: (event: any, data: any) => void) => void;
         offRPAUpdate: (callback: (event: any, data: any) => void) => void;
         showNotification: (title: string, body: string) => void;

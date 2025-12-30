@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../auth/AuthContext';
+import { useToast } from '../common/Toast';
 import VariablePanel from './VariablePanel';
 import ClauseLibrary from './ClauseLibrary';
 import AnalysisPanel from './AnalysisPanel';
@@ -32,6 +33,7 @@ const CLAUSE_TEMPLATES: Record<string, string> = {
 
 const DocBuilder: React.FC = () => {
     const { user } = useAuth();
+    const { showToast } = useToast();
     const location = useLocation();
     const [activeTemplate, setActiveTemplate] = useState('LMA Nigeria 2024 - Secured Term Facility');
     const [clauseText, setClauseText] = useState(CLAUSE_TEMPLATES['Charge Perfection (CAMA 2020)']);
@@ -40,6 +42,7 @@ const DocBuilder: React.FC = () => {
     const [isSigningModalOpen, setIsSigningModalOpen] = useState(false);
     const [isLoanSelectorOpen, setIsLoanSelectorOpen] = useState(false);
     const [docId, setDocId] = useState<string | null>(null);
+    const navigate = useNavigate();
 
     // Load existing draft or handle new loan context
     useEffect(() => {
@@ -100,7 +103,7 @@ const DocBuilder: React.FC = () => {
             setLastSaved(new Date().toLocaleTimeString());
         } catch (err: any) {
             console.error("Cloud save failed:", err);
-            alert(`Save Failed: ${err.message}`);
+            showToast(`Save Failed: ${err.message}`, 'error');
         } finally {
             setIsSaving(false);
         }
@@ -120,7 +123,7 @@ const DocBuilder: React.FC = () => {
                     // Update context to this loan
                     setDocId(null); // clear current doc ID to creating new one for this loan
                     setClauseText(prev => prev.replace('The Borrower', loan.borrower_name));
-                    alert(`Switched context to loan: ${loan.borrower_name}`);
+                    showToast(`Switched context to loan: ${loan.borrower_name}`, 'success');
                 }}
             />
 
@@ -160,9 +163,9 @@ const DocBuilder: React.FC = () => {
                         onClick={async () => {
                             if (window.electron) {
                                 const result = await window.electron.saveFile(clauseText, `${activeTemplate.replace(/\s+/g, '_')}.txt`);
-                                if (result.success) alert(`File saved: ${result.filePath}`);
+                                if (result.success) showToast(`File saved: ${result.filePath}`, 'success');
                             } else {
-                                alert("Local file saving is available in Desktop mode.");
+                                showToast("Local file saving is available in Desktop mode.", 'info');
                             }
                         }}
                         className="flex items-center gap-2 px-6 py-2.5 bg-[#008751] text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-800 shadow-lg shadow-emerald-900/20 transition-all active:scale-95"
@@ -210,13 +213,13 @@ const DocBuilder: React.FC = () => {
                                         if (window.electron) { // Check if running in Electron
                                             try {
                                                 const result = await window.electron.exportPDF();
-                                                if (result.success) alert(`PDF Saved to: ${result.filePath}`);
-                                                else if (result.error) alert(`Error: ${result.error}`);
+                                                if (result.success) showToast(`PDF Saved to: ${result.filePath}`, 'success');
+                                                else if (result.error) showToast(`Error: ${result.error}`, 'error');
                                             } catch (e) {
                                                 console.error(e);
                                             }
                                         } else {
-                                            alert("PDF Export is available in Desktop App mode only.");
+                                            showToast("PDF Export is available in Desktop App mode only.", 'info');
                                         }
                                     }}
                                     className="w-full py-4 bg-white text-emerald-950 rounded-xl text-xs font-black uppercase tracking-[0.2em] hover:bg-emerald-50 transition-all shadow-lg active:scale-95"
@@ -229,6 +232,29 @@ const DocBuilder: React.FC = () => {
                                 >
                                     <PenTool size={16} />
                                     Execute via DocuSign
+                                </button>
+                                <button
+                                    onClick={async () => {
+                                        // Navigate to Registry with document context
+                                        if (!docId) {
+                                            showToast('Please save document first', 'warning');
+                                            return;
+                                        }
+                                        navigate('/registry', {
+                                            state: {
+                                                documentId: docId,
+                                                openFilingForm: true,
+                                                prefillData: {
+                                                    entityName: clauseText.match(/The Borrower[,:]\s*([^,\.]+)/)?.[1]?.trim() || '',
+                                                    filingType: 'Fixed and Floating Charge'
+                                                }
+                                            }
+                                        });
+                                    }}
+                                    className="w-full py-4 bg-purple-600 text-white rounded-xl text-xs font-black uppercase tracking-[0.2em] hover:bg-purple-700 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                                >
+                                    <Briefcase size={16} />
+                                    Register Charge
                                 </button>
                             </div>
                         </div>

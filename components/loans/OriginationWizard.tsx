@@ -12,10 +12,12 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../auth/AuthContext';
+import { useToast } from '../common/Toast';
 
 const OriginationWizard: React.FC = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
+    const { showToast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
 
     // Form State
@@ -58,7 +60,8 @@ const OriginationWizard: React.FC = () => {
             navigate('/doc-builder', { state: { loanId: data.id, borrower: data.borrower_name } });
 
         } catch (err: any) {
-            alert(`Creation Failed: ${err.message}`);
+            console.error(err);
+            showToast(`Creation Failed: ${err.message}`, 'error');
         } finally {
             setIsLoading(false);
         }
