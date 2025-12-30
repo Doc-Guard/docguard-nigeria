@@ -25,7 +25,7 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({
         { icon: User, label: 'View Profile', action: () => navigate('/settings?tab=account') },
         { icon: Settings, label: 'Settings', action: () => navigate('/settings') },
         { icon: CreditCard, label: 'Subscription', action: () => navigate('/settings?tab=account') },
-        { icon: HelpCircle, label: 'Help & Documentation', action: () => window.open('https://docs.docguard.com', '_blank') },
+        { icon: HelpCircle, label: 'Help & Documentation', action: () => navigate('/settings') },
     ];
 
     return (

@@ -112,8 +112,8 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, onClose }
                         <button
                             onClick={() => setFilter('all')}
                             className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${filter === 'all'
-                                    ? 'bg-[#008751] text-white'
-                                    : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                ? 'bg-[#008751] text-white'
+                                : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
                                 }`}
                         >
                             All
@@ -121,8 +121,8 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, onClose }
                         <button
                             onClick={() => setFilter('unread')}
                             className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${filter === 'unread'
-                                    ? 'bg-[#008751] text-white'
-                                    : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                ? 'bg-[#008751] text-white'
+                                : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
                                 }`}
                         >
                             Unread
@@ -160,8 +160,8 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, onClose }
                 <div className="p-3 border-t border-emerald-50 shrink-0">
                     <button
                         onClick={() => {
-                            // Navigate to full notifications page
-                            window.location.href = '/notifications';
+                            // Navigate to dashboard activity section
+                            window.location.href = '/';
                             onClose();
                         }}
                         className="w-full py-2 text-[10px] font-black text-[#008751] uppercase tracking-widest hover:bg-emerald-50 rounded-xl transition-all"
