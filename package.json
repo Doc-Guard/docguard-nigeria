@@ -1,8 +1,9 @@
+```json
 {
   "name": "docguard",
   "private": true,
-  "version": "0.1.0",
-  "description": "DocGuard Nigeria - Automated Loan Compliance Fortress",
+  "version": "0.2.0",
+  "description": "AI-Powered Loan Compliance & Origination Platform for Nigeria (LMA/CAC/KYC)",
   "author": "LMA Edge Team",
   "type": "module",
   "main": "dist-electron/main.cjs",
@@ -18,6 +19,7 @@
     "@google/genai": "^1.34.0",
     "@supabase/supabase-js": "^2.48.1",
     "electron-squirrel-startup": "^1.0.1",
+    "electron-store": "^11.0.2",
     "lucide-react": "^0.562.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",

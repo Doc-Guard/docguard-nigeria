@@ -1,11 +1,17 @@
-import electron, { app, BrowserWindow, ipcMain, dialog, shell, Notification } from 'electron';
+
+import electron, { app, BrowserWindow, ipcMain, dialog, shell, Notification, safeStorage } from 'electron';
 import path from 'path';
 import fs from 'fs';
+import Store from 'electron-store';
+import { runRpaSimulation } from './handlers/rpa';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
     app.quit();
 }
+
+// Initialize Electron Store
+const store = new Store();
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -93,28 +99,33 @@ app.whenReady().then(() => {
     });
 
     ipcMain.handle('start-rpa', async (event, payload) => {
-        if (!mainWindow) return;
+        await runRpaSimulation(mainWindow);
+    });
 
-        // Simulation steps
-        const steps = [
-            { msg: "Initializing DocGuard Native RPA Engine...", type: 'info', p: 5, delay: 800 },
-            { msg: "Tunneling to CAC Portal via NITDA-compliant proxy...", type: 'info', p: 15, delay: 1500 },
-            { msg: "Bypassing CAPTCHA via Nigerian Geo-Neural Matrix...", type: 'success', p: 25, delay: 2000 },
-            { msg: "Authenticating: Accredited Agent Ref: ACC-7742-LAG...", type: 'info', p: 35, delay: 1200 },
-            { msg: "Data Mapping: LMA Doc -> Form 8 Particulars...", type: 'info', p: 45, delay: 1000 },
-            { msg: "Writing Statement of Particulars to Registry Buffer...", type: 'success', p: 60, delay: 1800 },
-            { msg: "Uploading Stamped Security Deed (Signed & Encrypted)...", type: 'info', p: 75, delay: 2500 },
-            { msg: "Committing filing to CAC Transaction Queue...", type: 'info', p: 85, delay: 1500 },
-            { msg: "PERFECTION SUCCESS. Ref: CAC-CHG-2024-9912", type: 'success', p: 100, delay: 1000 },
-            { msg: "Archiving screen evidence for Compliance Trail...", type: 'info', p: 100, delay: 800 },
-        ];
+    // SECURE STORAGE - SIMPLIFIED FOR LINUX
+    // Note: safeStorage works best on Mac/Windows. On Linux it requires KWallet/Gnome Keyring.
+    // For this build, we will store as plain text in the config for simplicity/robustness across Linux distros.
+    // In production, force safeStorage checks.
 
-        for (const step of steps) {
-            mainWindow.webContents.send('rpa-update', { message: step.msg, type: step.type, progress: step.p });
-            await new Promise(resolve => setTimeout(resolve, step.delay));
+    ipcMain.handle('set-secret', async (event, key: string, value: string) => {
+        try {
+            store.set(key, value);
+            return { success: true };
+        } catch (error: any) {
+            return { success: false, error: error.message };
         }
     });
 
+    ipcMain.handle('get-secret', async (event, key: string) => {
+        try {
+            const value = store.get(key);
+            return { success: true, value };
+        } catch (error: any) {
+            return { success: false, error: error.message };
+        }
+    });
+
+    // Window Controls
     ipcMain.on('window-controls', (event, action) => {
         if (!mainWindow) return;
         if (action === 'minimize') mainWindow.minimize();

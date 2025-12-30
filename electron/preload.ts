@@ -16,5 +16,7 @@ contextBridge.exposeInMainWorld('electron', {
     onRPAUpdate: (callback: (event: any, data: any) => void) => ipcRenderer.on('rpa-update', callback),
     offRPAUpdate: (callback: (event: any, data: any) => void) => ipcRenderer.removeListener('rpa-update', callback),
     showNotification: (title: string, body: string) => ipcRenderer.invoke('show-notification', { title, body }),
-    openExternal: (url: string) => ipcRenderer.invoke('open-external', url)
+    openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
+    setSecret: (key: string, value: string) => ipcRenderer.invoke('set-secret', key, value),
+    getSecret: (key: string) => ipcRenderer.invoke('get-secret', key)
 });
