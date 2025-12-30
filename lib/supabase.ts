@@ -4,13 +4,31 @@ import { createClient } from '@supabase/supabase-js';
 // Fallback values prevent the 'supabaseUrl is required' crash if environment variables aren't provided yet
 import { Secrets } from "../src/config/secrets";
 
-// Use encrypted secrets for Supabase connection
-const supabaseUrl = Secrets.SUPABASE_URL;
-const supabaseAnonKey = Secrets.SUPABASE_ANON_KEY;
+let _supabase: any = null;
 
-export const isSupabaseConfigured = !!supabaseUrl && !!supabaseAnonKey;
+export const getSupabase = () => {
+  if (!_supabase) {
+    const url = Secrets.SUPABASE_URL;
+    const key = Secrets.SUPABASE_ANON_KEY;
+    if (!url || !key) {
+      console.warn("Supabase not initialized: Missing URL or Anon Key");
+      return null;
+    }
+    _supabase = createClient(url, key);
+  }
+  return _supabase;
+};
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// For backward compatibility while encouraging use of getSupabase()
+export const supabase = new Proxy({}, {
+  get: (target, prop) => {
+    const client = getSupabase();
+    if (!client) throw new Error("Supabase client accessed before initialization");
+    return client[prop];
+  }
+}) as any;
+
+export const isSupabaseConfigured = () => !!Secrets.SUPABASE_URL && !!Secrets.SUPABASE_ANON_KEY;
 
 export interface SupabaseLoan {
   id: string;

@@ -2,8 +2,19 @@ import { GoogleGenAI, Type } from "@google/genai";
 
 import { Secrets } from "../src/config/secrets";
 
-// Initialize Gemini API client using encrypted credentials
-const ai = new GoogleGenAI({ apiKey: Secrets.GEMINI_API_KEY });
+let _ai: GoogleGenAI | null = null;
+
+const getAI = () => {
+  if (!_ai) {
+    const apiKey = Secrets.GEMINI_API_KEY;
+    if (!apiKey) {
+      console.warn("Gemini AI not initialized: Missing API Key");
+      // Fallback or handle appropriately
+    }
+    _ai = new GoogleGenAI({ apiKey: apiKey || 'dummy-key-for-initialization' });
+  }
+  return _ai;
+};
 
 export interface AnalysisResult {
   isCompliant: boolean;
@@ -14,6 +25,7 @@ export interface AnalysisResult {
 }
 
 export const analyzeClause = async (clauseText: string, context: string): Promise<AnalysisResult> => {
+  const ai = getAI();
   // Use ai.models.generateContent to query GenAI with model and prompt simultaneously.
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
@@ -72,6 +84,7 @@ export const analyzeClause = async (clauseText: string, context: string): Promis
 };
 
 export const analyzePortfolioRisks = async (risks: { entity: string, task: string, days: number }[]): Promise<{ summary: string, severity: 'LOW' | 'MEDIUM' | 'HIGH' }> => {
+  const ai = getAI();
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
     contents: `Analyze the following portfolio deadline risks for a Nigerian Bank:
@@ -100,6 +113,7 @@ export const analyzePortfolioRisks = async (risks: { entity: string, task: strin
 };
 
 export const rewriteClause = async (clauseText: string, instruction: string): Promise<string> => {
+  const ai = getAI();
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
     contents: `Rewrite the following legal clause based on this instruction: "${instruction}".

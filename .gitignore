@@ -24,3 +24,14 @@ release
 *.njsproj
 *.sln
 *.sw?
+
+# Environment Variables & Secrets
+.env
+.env.local
+.env.*.local
+src/config/secrets.ts
+src/config/secrets.js
+dist-electron/
+dist/
+release/
+node_modules/
