@@ -159,7 +159,7 @@ DocGuard is built with a "Zero-Trust" mindset suitable for financial data.
 
 ### 1. Application Security (AppSec)
 *   **Context Isolation**: The Electron main process (Node.js) is strictly isolated from the Renderer (React). Access to file system or sensitive APIs is only possible via a securely bridged `window.electron` API.
-*   **Credential Protection**: API keys and secrets are **XOR-encrypted** during the build process and decrypted only in memory at runtime, preventing static analysis attacks.
+*   **Credential Protection**: API keys and secrets are **AES-256-GCM encrypted** during the build process and decrypted only in memory at runtime, preventing static analysis attacks.
 
 ### 2. Data Security
 *   **Row Level Security (RLS)**: Database policies enforce that users can strictly *only* access resources (loans, filings, documents) that belong to their `user_id`.
