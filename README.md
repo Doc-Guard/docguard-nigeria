@@ -88,28 +88,6 @@ The application includes sophisticated mock services to demonstrate the "Happy P
 *   **Storage**: Supabase Storage (Evidence Buckets).
 *   **AI**: Google Gemini 2.0 Flash (`@google/genai` SDK) for clause analysis and risk scoring.
 
-## 📦 Installation
-**Prerequisites**: Node.js v18+
-
-1.  **Clone the repository**
-    ```bash
-    git clone https://github.com/Doc-Guard/docguard-nigeria.git
-    cd docguard-nigeria
-    ```
-
-2.  **Install dependencies**
-    ```bash
-    npm install
-    # Note: If esbuild binary is missing, run: npm install --save-dev esbuild
-    ```
-
-3.  **Configure Environment**
-    Create `.env` based on `.env.example` and add your keys:
-    ```env
-    VITE_GEMINI_API_KEY=your_key_here
-    VITE_SUPABASE_URL=your_url
-    VITE_SUPABASE_ANON_KEY=your_key
-    ```
 
 ## 📦 Installation & Setup
 
@@ -175,9 +153,21 @@ bun run electron:build
 *   **`esbuild` error**: If you encounter architecture errors, run `node node_modules/esbuild/install.js`.
 *   **Blank Screen**: Ensure you are running `bun run electron:dev` and not just opening the HTML file.
 
-## 🔐 Security
-*   **Credential Obfuscation**: API keys are XOR-encrypted in production builds.
-*   **Context Isolation**: Enabled in Electron main process.
+## 🔐 Security Architecture
+
+DocGuard is built with a "Zero-Trust" mindset suitable for financial data.
+
+### 1. Application Security (AppSec)
+*   **Context Isolation**: The Electron main process (Node.js) is strictly isolated from the Renderer (React). Access to file system or sensitive APIs is only possible via a securely bridged `window.electron` API.
+*   **Credential Protection**: API keys and secrets are **XOR-encrypted** during the build process and decrypted only in memory at runtime, preventing static analysis attacks.
+
+### 2. Data Security
+*   **Row Level Security (RLS)**: Database policies enforce that users can strictly *only* access resources (loans, filings, documents) that belong to their `user_id`.
+*   **Evidence Vault**: Uploaded screenshots and documents are stored in private Supabase Storage buckets with strict access policies.
+
+### 3. Operational Integrity
+*   **Immutable Logs**: The RPA activity logs provide a tamper-evident audit trail of every interaction with the CAC portal.
+*   **Cryptographic Timestamping**: PDF exports are stamped with the exact generation time and signer ID.
 
 ---
 *Built for the LMA Edge Hackathon 2025.*
