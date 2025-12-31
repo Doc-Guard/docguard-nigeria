@@ -57,7 +57,13 @@ const DocBuilder: React.FC = () => {
         if (location.state?.loanId) {
             setDocId(null); // New doc for this loan
             if (location.state?.borrower) {
-                setClauseText(prev => prev.replace('The Borrower', location.state.borrower));
+                // Check if we have an RC number in the state passed from Origination (we should update Origination to pass it)
+                // But for now, let's just use the borrower name. Better yet, let's make sure Origination passes it.
+                // Actually, OriginationWizard passes `loanId` and `borrower` only currently (line 67 of OriginationWizard).
+                // I should update OriginationWizard to pass the full entity string or ID so we can fetch it?
+                // Or just rely on the user to use "Link Loan" in DocBuilder.
+                // But for seamless "Originate -> DocBuilder" flow:
+                setClauseText(prev => prev.replace(/The Borrower/g, location.state.borrower));
             }
         } else if (location.state?.docId) {
             const fetchSpecificDraft = async () => {
@@ -379,7 +385,10 @@ const DocBuilder: React.FC = () => {
                 onClose={() => setIsLoanSelectorOpen(false)}
                 onSelect={(loan) => {
                     setDocId(null);
-                    setClauseText(prev => prev.replace('The Borrower', loan.borrower_name));
+                    const entityString = loan.rc_number
+                        ? `${loan.borrower_name} (with Registration No. ${loan.rc_number})`
+                        : loan.borrower_name;
+                    setClauseText(prev => prev.replace(/The Borrower/g, entityString));
                     showToast(`Switched context to loan: ${loan.borrower_name}`, 'success');
                 }}
             />

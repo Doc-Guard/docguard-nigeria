@@ -1,20 +1,31 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Building2, Search, CheckCircle, AlertCircle, FileCheck } from 'lucide-react';
 import { cacService } from '../../services/cacService';
 import { firsService } from '../../services/firsService';
 
 interface CorporateVerificationProps {
     onComplete: (data: any) => void;
+    prefillData?: {
+        rcNumber?: string;
+        tin?: string;
+    };
 }
 
-const CorporateVerification: React.FC<CorporateVerificationProps> = ({ onComplete }) => {
-    const [rcNumber, setRcNumber] = useState('');
-    const [tin, setTin] = useState('');
+const CorporateVerification: React.FC<CorporateVerificationProps> = ({ onComplete, prefillData }) => {
+    const [rcNumber, setRcNumber] = useState(prefillData?.rcNumber || '');
+    const [tin, setTin] = useState(prefillData?.tin || '');
     const [isVerifying, setIsVerifying] = useState(false);
     const [cacData, setCacData] = useState<any>(null);
     const [firsData, setFirsData] = useState<any>(null);
     const [error, setError] = useState('');
+
+    useEffect(() => {
+        if (prefillData) {
+            if (prefillData.rcNumber) setRcNumber(prefillData.rcNumber);
+            if (prefillData.tin) setTin(prefillData.tin);
+        }
+    }, [prefillData]);
 
     const handleVerifySync = async () => {
         setIsVerifying(true);

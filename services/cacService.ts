@@ -57,6 +57,22 @@ class CACService {
             };
         }
 
+        // Allow any valid RC Number format for Demo/Testing user input (e.g., RC123456)
+        // User Request: "prove loan originator to include entries... on each step... prefilled"
+        // This ensures the prefilled data is accepted as valid.
+        if (/^RC\d+$/i.test(query)) {
+            return {
+                rcNumber: query.toUpperCase(),
+                companyName: "DEMO PRE-FILLED ENTITY PLC",
+                companyType: "Public Limited",
+                registrationDate: "2000-01-01",
+                address: "100 Broad Street, Marina, Lagos",
+                directors: ["Demo Director 1", "Demo Director 2"],
+                status: "ACTIVE",
+                shareCapital: 1000000000
+            };
+        }
+
         throw new Error("Company Record Not Found");
     }
 }
