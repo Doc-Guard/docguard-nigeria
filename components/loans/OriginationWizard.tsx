@@ -32,6 +32,11 @@ const OriginationWizard: React.FC<OriginationWizardProps> = ({ onSuccess }) => {
     const [duration, setDuration] = useState('');
     const [durationUnit, setDurationUnit] = useState('Months');
 
+    // Compliance State
+    const [rcNumber, setRcNumber] = useState('');
+    const [tin, setTin] = useState('');
+    const [bvn, setBvn] = useState('');
+
     const handleCreate = async () => {
         if (!user || !borrower || !amount) return;
         setIsLoading(true);
@@ -47,7 +52,11 @@ const OriginationWizard: React.FC<OriginationWizardProps> = ({ onSuccess }) => {
                 status: 'Active',
                 tracking_data: {
                     origination_date: new Date().toISOString(),
-                    next_review: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString() // 90 days out
+                    next_review: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // 90 days out
+                    // User Request: "prove loan originator to include entries... TIN, BVN, RC Number"
+                    rc_number: rcNumber,
+                    tin: tin,
+                    bvn: bvn
                 },
                 pipeline_stage: 'Review'
             };

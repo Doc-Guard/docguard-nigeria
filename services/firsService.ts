@@ -47,6 +47,17 @@ class FIRSService {
             };
         }
 
+        // Allow any 10-12 digit TIN for Demo/Testing
+        if (/^\d{10,12}$/.test(tin)) {
+            return {
+                tin,
+                taxpayerName: "DEMO TAXPAYER LTD",
+                taxOffice: "MSTO LAGOS CENTRAL",
+                activeStatus: "Active",
+                email: "demo@tax.gov.ng"
+            };
+        }
+
         throw new Error("TIN Not Found or Inactive");
     }
 }

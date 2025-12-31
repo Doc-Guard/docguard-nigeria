@@ -12,6 +12,8 @@ interface Loan {
     loan_type: string;
     status: string;
     rc_number?: string;
+    tin?: string;
+    bvn?: string;
 }
 
 interface LoanSelectorProps {
@@ -37,7 +39,16 @@ const LoanSelector: React.FC<LoanSelectorProps> = ({ isOpen, onClose, onSelect }
                 .eq('user_id', user.id)
                 .order('created_at', { ascending: false });
 
-            if (data) setLoans(data);
+            if (data) {
+                // Flatten tracking_data for easier consumption
+                const mapped = data.map((l: any) => ({
+                    ...l,
+                    rc_number: l.tracking_data?.rc_number || '',
+                    tin: l.tracking_data?.tin || '',
+                    bvn: l.tracking_data?.bvn || ''
+                }));
+                setLoans(mapped);
+            }
             setIsLoading(false);
         };
         fetchLoans();

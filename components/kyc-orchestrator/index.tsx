@@ -96,7 +96,13 @@ const KYCOrchestrator: React.FC = () => {
             {/* Active Step */}
             <div className="min-h-[400px]">
                 {step === 1 && <IdentityVerification onComplete={handleStepComplete} />}
-                {step === 2 && <CorporateVerification onComplete={handleStepComplete} />}
+                {step === 2 && <CorporateVerification
+                    onComplete={handleStepComplete}
+                    prefillData={loanContext ? {
+                        rcNumber: loanContext.rc_number,
+                        tin: loanContext.tin
+                    } : undefined}
+                />}
                 {step === 3 && <DocumentScanner onComplete={handleStepComplete} />}
                 {step === 4 && <LivenessCheck onComplete={handleStepComplete} />}
                 {step === 5 && <RiskScore score={98} details={kycData} />}
