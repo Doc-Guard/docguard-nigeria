@@ -1,91 +1,173 @@
 <div align="center">
+  <img src="public/logo.png" alt="DocGuard Logo" width="120" height="120" />
   <h1>DocGuard Nigeria 🏦🇳🇬</h1>
-  <h3>The Automated Loan Compliance Fortress</h3>
-  <p><i>Draft, Perfect, and Verify Loans in Hours, Not Weeks.</i></p>
+  <h3>The Intelligent Loan Compliance & Origination Operating System</h3>
+  <p><i>From Term Sheet to Perfection in Minutes. Automated. Compliant. Secure.</i></p>
+
+  <p align="center">
+    <a href="#-features">Features</a> •
+    <a href="#-architecture">Architecture</a> •
+    <a href="#-demo-mode">Demo Mode</a> •
+    <a href="#-tech-stack">Tech Stack</a> •
+    <a href="#-installation">Installation</a>
+  </p>
 </div>
 
 ---
 
-## 💡 Inspiration
-In Nigeria's ₦15 trillion corporate lending market, **time kills deals**. A single syndicated loan can involve 3+ weeks of LMA template adaptation and 21+ days of manual CAC registration.
+## 💡 The Problem
+In Nigeria's ₦15 trillion corporate lending market, **administrative friction kills deals**. 
+*   **LMA Adaptation**: Manual conversion of English law templates to Nigerian context takes weeks.
+*   **CAC Perfection**: Filing charges at the Corporate Affairs Commission is manual, opaque, and prone to "query" delays.
+*   **Disconnected Data**: KYC, Legal, and Compliance teams work in silos, re-typing the same RC Numbers and TINs 10x.
 
-**DocGuard** is an AI-powered desktop command center that automates this entire lifecycle, bridging the gap between international LMA standards and Nigerian regulatory requirements (CAMA 2020).
+## 🛡️ The Solution: DocGuard
+**DocGuard** is an AI-powered desktop command center that automates the entire secured lending lifecycle. It unifies **Origination**, **Documentation**, **KYC**, and **Regulatory Filing** into a single, intelligent workflow.
 
-## 🚀 Features
+## 🚀 Core Capabilities
 
-### 1. LMA Smart Document Builder
-*   **AI Clause Analysis**: Gemini-powered risk scoring for every clause.
-*   **Magic Rewrite**: One-click adaptation to Nigerian legal context.
-*   **Smart Variables**: Auto-detection and filling of `{{Borrower}}`, `{{Facility Amount}}`, etc.
+### 1. 🧠 Cross-Module Intelligence (New)
+*   **Unified Data Flow**: Enter borrower details *once* during origination. DocGuard automatically propagates **RC Number**, **TIN**, and **BVN** to KYC checks, Legal Docs, and CAC Filings.
+*   **Context-Aware**: Linking a loan to any module instantly pre-fills forms, eliminating manual entry errors.
 
-### 2. CAC Registry Bot (RPA Simulation)
-*   **Automated Filing**: Simulates the manual perfection process at the Corporate Affairs Commission.
-*   **Real-time Logging**: Terminal-style visibility into every step.
-*   **Native Notifications**: Desktop alerts when filings are perfected.
+### 2. 📝 LMA Smart Document Builder
+*   **AI Clause Analysis**: Gemini 2.0 Flash analyzes clauses for risk against Nigerian Evidence Act 2023.
+*   **Magic Rewrite**: One-click adaptation of UK-style covenants to Nigerian customized clauses.
+*   **Legal Precision**: Automatically injects full corporate descriptors (e.g., *"Dangote Industries (with Registration No. RC123456)"*) into definitions.
 
-### 3. KYC Orchestrator
-*   **Identity Verification**: Simulated NIN/BVN checks.
-*   **Document Scanner**: AI-powered OCR and validity feedback.
-*   **Liveness Detection**: Integrated camera interface.
+### 3. 🏛️ CAC Registry Bot (RPA)
+*   **Automated Perfection**: Native Electron robot simulates interaction with the CAC portal.
+*   **Screenshot Hub & Evidence Vault**: Captures and cryptographically timestamps proof of filing (Uploads/Screenshots) to a secure Supabase bucket.
+*   **Smart Pre-fill**: Auto-populates Charge Forms based on the linked loan's facility type and amount.
 
-### 4. Loan Origination Pipeline
-*   **Centralized Facility Management**: Create and track loans with specific types, durations, and currencies.
-*   **Deep Context Linking**: Link documents, regulatory filings, and KYC checks directly to active facilities.
-*   **Unified Dashboard**: Monitor the entire lifecycle of a loan from origination to perfection.
+### 4. 🕵️‍♂️ KYC Orchestrator
+*   **Corporate Due Diligence**: Parallel verification of **CAC Status** and **FIRS Tax Compliance**.
+*   **Identity**: Simulated **NIN** and **BVN** validation for directors.
+*   **Liveness**: Integrated webcam biometrics.
 
-## 🛠️ Tech Stack
-| Layer | Technology |
-|-------|------------|
-| **Frontend** | React 19 + TypeScript + Tailwind CSS |
-| **Desktop Shell** | Electron 39 (Secure IPC + Context Isolation) |
-| **AI Engine** | Google Gemini API (`@google/genai`) |
-| **Build System** | Vite + esbuild + electron-builder |
-| **Database** | Supabase (PostgreSQL) |
+### 5. ⏰ Deadline Guardian
+*   **Active Monitoring**: Tracks the mandatory **90-day registration window** (CAMA 2020).
+*   **Smart Alerts**: Native desktop notifications warn you when a filing is approaching the "Void" risk threshold.
 
-## 📦 Installation
-**Prerequisites**: Node.js v18+
+### 6. 💼 Origination Pipeline
+*   **Structured Capture**: Standardized intake for Term Facilities, Revolving Credit, and Project Finance.
+*   **Pipeline Dashboard**: Kanban-style view of all deals from "Lead" to "Disbursed".
+## 🎮 Demo Mode (Verification Guide)
 
-1.  **Clone the repository**
-    ```bash
-    git clone https://github.com/Doc-Guard/docguard-nigeria.git
-    cd docguard-nigeria
-    ```
+The application includes sophisticated mock services to demonstrate the "Happy Path" without needing live government API keys.
 
-2.  **Install dependencies**
-    ```bash
-    npm install
-    # Note: If esbuild binary is missing, run: npm install --save-dev esbuild
-    ```
+| Service | Trigger Input | Behavior |
+| :--- | :--- | :--- |
+| **CAC Registry** | `RC...` (e.g., `RC123456`) | Returns a valid "Active" limited liability company. |
+| **CAC Registry** | Other | Throws "Company Not Found" error. |
+| **FIRS (Tax)** | `10-12 Digits` (e.g., `1000234567`) | Returns a valid "Tax Compliant" status. |
+| **FIRS (Tax)** | Other | Throws "TIN Invalid" error. |
 
-3.  **Configure Environment**
-    Create `.env` based on `.env.example` and add your keys:
-    ```env
-    VITE_GEMINI_API_KEY=your_key_here
-    VITE_SUPABASE_URL=your_url
-    VITE_SUPABASE_ANON_KEY=your_key
-    ```
+**Try this Flow:**
+1.  **Originate**: Create a loan for "Lagos Tech Ltd" with RC Number `RC999999` and TIN `1112223334`.
+2.  **KYC**: Go to KYC, link "Lagos Tech Ltd". Watch the Corporate Verification step **auto-pass** with green checks.
+3.  **Registry**: Go to CAC Registry, link "Lagos Tech Ltd". Click "Create Charge". Watch the form **auto-fill** with the RC Number.
+4.  **Docs**: Go to Doc Builder, link "Lagos Tech Ltd". See "The Borrower" replaced with **"Lagos Tech Ltd (with Registration No. RC999999)"**.
 
-## 🏃‍♂️ Running the App
+## 🏗️ Architecture & Tech Stack
 
-### Development Mode
+### Frontend (The Shell)
+*   **Framework**: React 19 (Latest)
+*   **Language**: TypeScript 5.8
+*   **Styling**: Tailwind CSS v4 (Oxidized)
+*   **Bundler**: Vite 6.2 (Superfast HMR)
+*   **Icons**: Lucide React
+
+### Desktop Layer (Electron)
+*   **Engine**: Electron 39
+*   **Security**: Context Isolation, Preload Scripts, encrypted local secrets.
+*   **Features**: Native File System Access (for saving PDFs), Native Notifications, Shell Integration.
+
+### Backend & AI (The Brain)
+*   **Database**: Supabase (PostgreSQL 15) with Row Level Security (RLS).
+*   **Storage**: Supabase Storage (Evidence Buckets).
+*   **AI**: Google Gemini 2.0 Flash (`@google/genai` SDK) for clause analysis and risk scoring.
+
+
+## 📦 Installation & Setup
+
+**Prerequisites**:
+*   Node.js v18+ (v20 Recommended)
+*   **Bun** (Highly recommended for speed) or npm
+*   Git
+
+### 1. Clone the Repository
 ```bash
-# Run web version
-npm run dev
-
-# Run Electron desktop version
-npm run electron:dev
+git clone https://github.com/Doc-Guard/docguard-nigeria.git
+cd docguard-nigeria
 ```
 
-### Build for Production
-To generate the Linux AppImage and Windows Portable Executable:
+### 2. Install Dependencies
+We use **Bun** for lightning-fast installs, but npm works too.
 ```bash
-npm run build && npm run build:electron && npx electron-builder --linux --win
-```
-_Note: Windows installer generation requires Wine on Linux._
+# Using Bun (Recommended)
+bun install
 
-## 🔐 Security
-*   **Credential Obfuscation**: API keys are XOR-encrypted in production builds.
-*   **Context Isolation**: Enabled in Electron main process.
+# Using npm
+npm install
+```
+
+### 3. Smart Configuration
+The app uses a secure secret generation script. You don't need to manually create a `.env` file for local testing unless you want to override defaults.
+*   **Defaults**: The app will auto-generate encryption keys on startup.
+*   **Optional**: Copy `.env.example` to `.env` to supply your own Google Gemini API Key.
+    ```bash
+    cp .env.example .env
+    ```
+
+## 🏃‍♂️ How to Run
+
+### Mode A: Desktop Application (Recommended)
+Experience the full power of DocGuard with Native File System access and Screenshot Hub.
+```bash
+# Development Mode
+bun run electron:dev
+
+# Production Build (Preview)
+bun run build:electron && electron-builder --dir
+```
+
+### Mode B: Web Platform
+Useful for quick UI testing without Electron dependencies.
+```bash
+bun run dev
+```
+
+## 🏗️ Building for Release
+To generate the distributable binaries (AppImage, Snap, Setup.exe):
+
+```bash
+# Build for your current OS (Linux)
+bun run electron:build
+
+# The output will be in the `release/` directory:
+# - release/DocGuard-0.5.0.AppImage
+```
+
+## 🔧 Troubleshooting
+*   **`esbuild` error**: If you encounter architecture errors, run `node node_modules/esbuild/install.js`.
+*   **Blank Screen**: Ensure you are running `bun run electron:dev` and not just opening the HTML file.
+
+## 🔐 Security Architecture
+
+DocGuard is built with a "Zero-Trust" mindset suitable for financial data.
+
+### 1. Application Security (AppSec)
+*   **Context Isolation**: The Electron main process (Node.js) is strictly isolated from the Renderer (React). Access to file system or sensitive APIs is only possible via a securely bridged `window.electron` API.
+*   **Credential Protection**: API keys and secrets are **AES-256-GCM encrypted** during the build process and decrypted only in memory at runtime, preventing static analysis attacks.
+
+### 2. Data Security
+*   **Row Level Security (RLS)**: Database policies enforce that users can strictly *only* access resources (loans, filings, documents) that belong to their `user_id`.
+*   **Evidence Vault**: Uploaded screenshots and documents are stored in private Supabase Storage buckets with strict access policies.
+
+### 3. Operational Integrity
+*   **Immutable Logs**: The RPA activity logs provide a tamper-evident audit trail of every interaction with the CAC portal.
+*   **Cryptographic Timestamping**: PDF exports are stamped with the exact generation time and signer ID.
 
 ---
 *Built for the LMA Edge Hackathon 2025.*
