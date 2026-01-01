@@ -12,10 +12,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
 
     const navItems = [
         { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-        { name: 'Loans', path: '/loans', icon: Briefcase },
-        { name: 'LMA Doc Builder', path: '/doc-builder', icon: FileText },
-        { name: 'CAC Registry', path: '/registry', icon: ShieldCheck },
+        { name: 'Loan Origination', path: '/loans', icon: Briefcase },
         { name: 'KYC Orchestrator', path: '/kyc', icon: UserCheck },
+        { name: 'LMA Smart Docs', path: '/doc-builder', icon: FileText },
+        { name: 'CAC Registry Bot', path: '/registry', icon: ShieldCheck },
         { name: 'Analytics', path: '/analytics', icon: BarChart3 },
     ];
 
