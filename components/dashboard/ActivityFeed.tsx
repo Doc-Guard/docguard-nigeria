@@ -3,6 +3,7 @@ import { Clock, MessageSquare, CheckCircle, FileText } from 'lucide-react';
 
 interface ActivityFeedProps {
     isLoading: boolean;
+    loanId?: string;
 }
 
 interface ActivityEvent {
@@ -14,24 +15,30 @@ interface ActivityEvent {
     event_timestamp: string;
 }
 
-const ActivityFeed: React.FC<ActivityFeedProps> = ({ isLoading }) => {
+const ActivityFeed: React.FC<ActivityFeedProps> = ({ isLoading, loanId }) => {
     const [events, setEvents] = React.useState<ActivityEvent[]>([]);
 
     React.useEffect(() => {
         fetchActivity();
-    }, []);
+    }, [loanId]);
 
     const fetchActivity = async () => {
         const { supabase } = await import('../../lib/supabase');
-        const { useAuth } = await import('../auth/AuthContext');
 
         try {
-            // Query the activity_feed view
-            const { data, error } = await supabase
+            // Start the query
+            let query = supabase
                 .from('activity_feed')
                 .select('*')
                 .order('event_timestamp', { ascending: false })
                 .limit(15);
+
+            // Apply filter if loanId is provided
+            if (loanId) {
+                query = query.eq('loan_id', loanId);
+            }
+
+            const { data, error } = await query;
 
             if (error) throw error;
             setEvents(data || []);
