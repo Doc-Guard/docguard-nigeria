@@ -20,6 +20,8 @@ import AnalysisPanel from './AnalysisPanel';
 import Editor from './Editor';
 import ExecutionModal from './ExecutionModal';
 import LoanSelector from '../common/LoanSelector';
+import { KYCBlockingMessage } from '../common/KYCStatusBadge';
+import { getLoanKYCStatus, LoanKYCStatus } from '../../services/kycPersistence';
 import { LMA_TEMPLATES, LMATemplate, LMAClause, LMA_SECURED_TERM_FACILITY } from '../../lib/lmaTemplates';
 
 const DocBuilder: React.FC = () => {
@@ -39,6 +41,8 @@ const DocBuilder: React.FC = () => {
     const [isSigningModalOpen, setIsSigningModalOpen] = useState(false);
     const [isLoanSelectorOpen, setIsLoanSelectorOpen] = useState(false);
     const [docId, setDocId] = useState<string | null>(null);
+    const [linkedLoanId, setLinkedLoanId] = useState<string | null>(null);
+    const [kycStatus, setKycStatus] = useState<LoanKYCStatus | null>(null);
 
     // Initialize with first clause
     useEffect(() => {
@@ -56,6 +60,9 @@ const DocBuilder: React.FC = () => {
         // If navigated from Origination Wizard
         if (location.state?.loanId) {
             setDocId(null); // New doc for this loan
+            setLinkedLoanId(location.state.loanId);
+            // Check KYC status for linked loan
+            getLoanKYCStatus(location.state.loanId).then(setKycStatus);
             if (location.state?.borrower) {
                 // Check if we have an RC number in the state passed from Origination (we should update Origination to pass it)
                 // But for now, let's just use the borrower name. Better yet, let's make sure Origination passes it.
@@ -385,6 +392,9 @@ const DocBuilder: React.FC = () => {
                 onClose={() => setIsLoanSelectorOpen(false)}
                 onSelect={(loan) => {
                     setDocId(null);
+                    setLinkedLoanId(loan.id);
+                    // Check KYC status for newly linked loan
+                    getLoanKYCStatus(loan.id).then(setKycStatus);
                     const entityString = loan.rc_number
                         ? `${loan.borrower_name} (with Registration No. ${loan.rc_number})`
                         : loan.borrower_name;
@@ -476,15 +486,27 @@ const DocBuilder: React.FC = () => {
                     <div className="bg-[#0a2e1f] text-white rounded-2xl p-8 shadow-2xl relative overflow-hidden group">
                         <div className="relative z-10">
                             <h4 className="font-black text-xl mb-3 tracking-tight">Execution Hub</h4>
-                            <p className="text-emerald-400 text-xs font-medium mb-8 leading-relaxed">Evidence Act 2023 certified e-signature integration for secure closing.</p>
+                            <p className="text-emerald-400 text-xs font-medium mb-4 leading-relaxed">Evidence Act 2023 certified e-signature integration for secure closing.</p>
+
+                            {/* KYC Blocking Message */}
+                            {linkedLoanId && kycStatus && !kycStatus.isFullyVerified && (
+                                <KYCBlockingMessage
+                                    status={kycStatus}
+                                    loanId={linkedLoanId}
+                                    action="export or sign documents"
+                                />
+                            )}
+
                             <div className="flex flex-col gap-3">
                                 <button
                                     onClick={handleQuickExport}
-                                    className="w-full py-4 bg-white text-emerald-950 rounded-xl text-xs font-black uppercase tracking-[0.2em] hover:bg-emerald-50 transition-all shadow-lg active:scale-95"
+                                    disabled={linkedLoanId ? !kycStatus?.isFullyVerified : false}
+                                    className="w-full py-4 bg-white text-emerald-950 rounded-xl text-xs font-black uppercase tracking-[0.2em] hover:bg-emerald-50 transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     Secure PDF Export
                                 </button>
                                 <button
+                                    disabled={linkedLoanId ? !kycStatus?.isFullyVerified : false}
                                     onClick={() => {
                                         if (!profile?.signature_url) {
                                             showToast("Please configure your Digital Signature in Settings first.", "error");
@@ -493,7 +515,7 @@ const DocBuilder: React.FC = () => {
                                             setIsSigningModalOpen(true);
                                         }
                                     }}
-                                    className="w-full py-4 bg-[#008751] text-white rounded-xl text-xs font-black uppercase tracking-[0.2em] hover:bg-emerald-600 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                                    className="w-full py-4 bg-[#008751] text-white rounded-xl text-xs font-black uppercase tracking-[0.2em] hover:bg-emerald-600 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <PenTool size={16} />
                                     Execute & Sign

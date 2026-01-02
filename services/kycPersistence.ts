@@ -130,3 +130,96 @@ export const isEntityVerified = async (identifier: string): Promise<boolean> => 
 
     return !!data;
 };
+
+/**
+ * KYC Status for a loan
+ */
+export interface LoanKYCStatus {
+    isFullyVerified: boolean;
+    bvnVerified: boolean;
+    rcVerified: boolean;
+    tinVerified: boolean;
+    verifiedCount: number;
+    totalRequired: number;
+    verifications: any[];
+    missingVerifications: string[];
+}
+
+/**
+ * Get comprehensive KYC status for a loan
+ * Checks if BVN, RC, and TIN are verified for the loan
+ */
+export const getLoanKYCStatus = async (loanId: string): Promise<LoanKYCStatus> => {
+    const { data: verifications, error } = await supabase
+        .from('kyc_requests')
+        .select('*')
+        .eq('loan_id', loanId)
+        .eq('status', 'Verified')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching loan KYC status:', error);
+        return {
+            isFullyVerified: false,
+            bvnVerified: false,
+            rcVerified: false,
+            tinVerified: false,
+            verifiedCount: 0,
+            totalRequired: 3,
+            verifications: [],
+            missingVerifications: ['BVN', 'CAC_RC', 'FIRS_TIN']
+        };
+    }
+
+    const records = verifications || [];
+    const bvnVerified = records.some(v => v.verification_type === 'BVN');
+    const rcVerified = records.some(v => v.verification_type === 'CAC_RC');
+    const tinVerified = records.some(v => v.verification_type === 'FIRS_TIN');
+
+    const missing: string[] = [];
+    if (!bvnVerified) missing.push('BVN');
+    if (!rcVerified) missing.push('CAC_RC');
+    if (!tinVerified) missing.push('FIRS_TIN');
+
+    const verifiedCount = [bvnVerified, rcVerified, tinVerified].filter(Boolean).length;
+
+    return {
+        isFullyVerified: bvnVerified && rcVerified && tinVerified,
+        bvnVerified,
+        rcVerified,
+        tinVerified,
+        verifiedCount,
+        totalRequired: 3,
+        verifications: records,
+        missingVerifications: missing
+    };
+};
+
+/**
+ * Check if any entity identifier is verified (not loan-specific)
+ * Useful for checking by RC number, BVN, or TIN across all loans
+ */
+export const getEntityKYCStatus = async (identifier: string): Promise<{
+    isVerified: boolean;
+    verificationType?: string;
+    entityName?: string;
+    verifiedAt?: string;
+}> => {
+    const { data, error } = await supabase
+        .from('kyc_requests')
+        .select('*')
+        .eq('identifier', identifier)
+        .eq('status', 'Verified')
+        .maybeSingle();
+
+    if (error || !data) {
+        return { isVerified: false };
+    }
+
+    return {
+        isVerified: true,
+        verificationType: data.verification_type,
+        entityName: data.entity_name,
+        verifiedAt: data.created_at
+    };
+};

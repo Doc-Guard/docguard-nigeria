@@ -139,7 +139,8 @@ const Analytics: React.FC = () => {
     };
 
     const processComplianceData = (kycRequests: any[], filings: any[]) => {
-        const completedKYC = kycRequests.filter(k => k.status === 'Approved').length;
+        // Count both 'Approved' (legacy) and 'Verified' (new persistence layer) statuses
+        const completedKYC = kycRequests.filter(k => k.status === 'Approved' || k.status === 'Verified').length;
         const kycCompletionRate = kycRequests.length > 0 ? Math.round((completedKYC / kycRequests.length) * 100) : 0;
         const pendingVerifications = kycRequests.filter(k => k.status === 'Pending').length;
 

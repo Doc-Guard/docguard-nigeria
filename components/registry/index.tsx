@@ -12,6 +12,9 @@ import FilingHistory from './FilingHistory';
 import LoanSelector from '../common/LoanSelector';
 import FilingDetailView from './FilingDetailView';
 import FilingForm, { FilingFormData } from './FilingForm';
+import { KYCBlockingMessage } from '../common/KYCStatusBadge';
+import { getLoanKYCStatus, LoanKYCStatus } from '../../services/kycPersistence';
+import { notifyFilingPerfected } from '../../services/notificationService';
 
 interface Filing {
     id: string;
@@ -38,6 +41,7 @@ const ChargeRegistry: React.FC = () => {
     const [activeEvidenceUrl, setActiveEvidenceUrl] = useState<string | null>(null);
     const [selectedFilingId, setSelectedFilingId] = useState<string | null>(null);
     const [isDetailViewOpen, setIsDetailViewOpen] = useState(false);
+    const [kycStatus, setKycStatus] = useState<LoanKYCStatus | null>(null);
 
     // Fetch filings from Supabase
     useEffect(() => {
@@ -166,6 +170,16 @@ const ChargeRegistry: React.FC = () => {
     const startAutomatedFiling = async (filingData: import('./FilingForm').FilingFormData) => {
         if (!user) return;
 
+        // Check KYC status before proceeding
+        const loanId = filingData.loanId || activeLoan?.id;
+        if (loanId) {
+            const status = await getLoanKYCStatus(loanId);
+            if (!status.isFullyVerified) {
+                showToast('KYC verification incomplete. Please complete KYC before filing.', 'error');
+                return;
+            }
+        }
+
         setActiveFilingPayload(filingData);
         setIsBotActive(true);
         setLogs([]);
@@ -218,24 +232,43 @@ const ChargeRegistry: React.FC = () => {
                         try {
                             const readResult = await window.electron.readFile(rpaResult.evidencePath);
                             if (readResult.success && readResult.data) {
+                                // Convert Buffer to Uint8Array for Supabase upload
+                                // IPC serializes Buffer to object with numeric keys, convert back
+                                const bufferData = readResult.data as any;
+                                let bytes: number[];
+
+                                if (bufferData instanceof Uint8Array) {
+                                    bytes = Array.from(bufferData);
+                                } else if (bufferData.type === 'Buffer' && Array.isArray(bufferData.data)) {
+                                    // Electron IPC serializes Buffer as {type: 'Buffer', data: [...]}
+                                    bytes = bufferData.data;
+                                } else {
+                                    // Try to convert from object with numeric keys
+                                    bytes = Object.values(bufferData) as number[];
+                                }
+
+                                const blob = new Blob([new Uint8Array(bytes)], { type: 'image/png' });
                                 const fileName = `evidence/${user.id}/${rpaResult.filingRef}_${Date.now()}.png`;
+
                                 const { error: uploadError } = await supabase.storage
-                                    .from('evidence') // Ensure this bucket exists
-                                    .upload(fileName, readResult.data, {
-                                        contentType: 'image/png'
+                                    .from('evidence') // Ensure this bucket exists in Supabase
+                                    .upload(fileName, blob, {
+                                        contentType: 'image/png',
+                                        upsert: true
                                     });
 
                                 if (!uploadError) {
                                     evidenceUrl = fileName;
                                     addLog('Evidence uploaded securely to cloud.', 'success');
-                                    setActiveEvidenceUrl(fileName); // Show in sidebar immediatey
+                                    setActiveEvidenceUrl(fileName); // Show in sidebar immediately
                                 } else {
                                     console.warn('Evidence upload failed:', uploadError);
-                                    addLog('Cloud upload failed for evidence.', 'error');
+                                    addLog(`Cloud upload failed: ${uploadError.message}`, 'error');
                                 }
                             }
-                        } catch (err) {
+                        } catch (err: any) {
                             console.error('Evidence processing error:', err);
+                            addLog(`Evidence processing failed: ${err.message}`, 'error');
                         }
                     }
 
@@ -252,6 +285,9 @@ const ChargeRegistry: React.FC = () => {
                             }
                         })
                         .eq('id', filing.id);
+
+                    // Create notification for successful filing
+                    notifyFilingPerfected(user.id, rpaResult.filingRef, filingData.entityName, filing.id);
 
                     showToast(`Filing perfected! Ref: ${rpaResult.filingRef}`, 'success');
                 }
@@ -301,6 +337,8 @@ const ChargeRegistry: React.FC = () => {
                     onClose={() => setIsLoanSelectorOpen(false)}
                     onSelect={(loan) => {
                         setActiveLoan(loan);
+                        // Check KYC status for selected loan
+                        getLoanKYCStatus(loan.id).then(setKycStatus);
                         setSearchTerm(loan.borrower_name); // Auto-filter filings by borrower
                         showToast(`RPA Context set to: ${loan.borrower_name} (${loan.amount.toLocaleString()} ${loan.currency})`, 'success');
                         // Ideally pass this loan context to PayloadSidebar or RPA invocation
@@ -348,16 +386,25 @@ const ChargeRegistry: React.FC = () => {
                         <Lock size={16} /> Secure Portal
                     </button>
                     {!isBotActive ? (
-                        <button
-                            onClick={() => setIsFilingFormOpen(true)}
-                            className={`flex items-center gap-2 px-8 py-3 rounded-xl text-xs font-black uppercase tracking-[0.2em] shadow-xl transition-all active:scale-95 ${activeLoan
-                                ? 'bg-[#008751] text-white hover:bg-emerald-700 shadow-emerald-900/20'
-                                : 'bg-gray-900 text-white hover:bg-gray-800 shadow-gray-900/20'
-                                }`}
-                        >
-                            <Activity size={18} className={isBotActive ? "animate-spin" : ""} />
-                            {activeLoan ? 'Create Charge' : 'Create New Filing'}
-                        </button>
+                        <>
+                            {/* KYC Blocking Banner for Linked Loan */}
+                            {activeLoan && kycStatus && !kycStatus.isFullyVerified && (
+                                <div className="px-4 py-2 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-bold">
+                                    ⚠️ KYC Required
+                                </div>
+                            )}
+                            <button
+                                onClick={() => setIsFilingFormOpen(true)}
+                                disabled={activeLoan ? !kycStatus?.isFullyVerified : false}
+                                className={`flex items-center gap-2 px-8 py-3 rounded-xl text-xs font-black uppercase tracking-[0.2em] shadow-xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${activeLoan
+                                    ? 'bg-[#008751] text-white hover:bg-emerald-700 shadow-emerald-900/20'
+                                    : 'bg-gray-900 text-white hover:bg-gray-800 shadow-gray-900/20'
+                                    }`}
+                            >
+                                <Activity size={18} className={isBotActive ? "animate-spin" : ""} />
+                                {activeLoan ? 'Create Charge' : 'Create New Filing'}
+                            </button>
+                        </>
                     ) : (
                         <button className="flex items-center gap-2 px-8 py-3 bg-slate-200 text-slate-500 rounded-xl text-xs font-black uppercase tracking-[0.2em] cursor-not-allowed">
                             <Loader2 size={18} className="animate-spin" />
