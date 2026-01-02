@@ -4,12 +4,17 @@ import { Search, CheckCircle, AlertCircle, Fingerprint } from 'lucide-react';
 
 interface IdentityVerificationProps {
     onComplete: (data: any) => void;
+    prefillData?: { bvn?: string };
 }
 
-const IdentityVerification: React.FC<IdentityVerificationProps> = ({ onComplete }) => {
-    const [bvn, setBvn] = useState('');
+const IdentityVerification: React.FC<IdentityVerificationProps> = ({ onComplete, prefillData }) => {
+    const [bvn, setBvn] = useState(prefillData?.bvn || '');
     const [isVerifying, setIsVerifying] = useState(false);
     const [error, setError] = useState('');
+
+    React.useEffect(() => {
+        if (prefillData?.bvn) setBvn(prefillData.bvn);
+    }, [prefillData]);
 
     const handleVerify = async () => {
         if (bvn.length !== 11) {

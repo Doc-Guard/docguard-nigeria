@@ -15,7 +15,7 @@ const Login: React.FC = () => {
                     <div className="p-10 md:p-14">
                         <div className="flex flex-col items-center mb-10">
                             <div className="w-16 h-16 bg-[#008751] rounded-2xl flex items-center justify-center shadow-xl shadow-emerald-900/20 mb-6 transform hover:rotate-6 transition-transform cursor-pointer">
-                                <Leaf size={32} className="text-white fill-current" />
+                                <ShieldCheck size={32} className="text-white fill-current" />
                             </div>
                             <h1 className="text-3xl font-black text-emerald-950 tracking-tight">Welcome Back</h1>
                             <p className="text-emerald-600/60 font-medium text-center mt-2 max-w-xs">Secure login to Nigeria's leading loan documentation infrastructure.</p>
@@ -38,7 +38,7 @@ const Login: React.FC = () => {
                 </div>
 
                 <p className="text-center mt-8 text-white/40 text-[10px] font-black uppercase tracking-[0.3em]">
-                    DocGuard Nigeria v1.0 • Built for Nigerian Banks
+                    DocGuard Nigeria v0.8.0 • Built for Nigerian Banks
                 </p>
             </div>
         </div>
