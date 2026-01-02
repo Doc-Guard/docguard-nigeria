@@ -81,10 +81,16 @@ const DeadlineGuardian: React.FC<DeadlineGuardianProps> = ({
                         const { color, val, label } = getEscalationStatus(item.days);
                         const isSovereignRisk = item.entity.toLowerCase().includes('state') || item.entity.toLowerCase().includes('federal');
 
+                        // Map dynamic colors
+                        const textColor = color === 'rose' ? 'text-rose-400' : color === 'amber' ? 'text-amber-400' : color === 'yellow' ? 'text-yellow-400' : 'text-emerald-400';
+                        const badgeBg = color === 'rose' ? 'bg-rose-500/20' : color === 'amber' ? 'bg-amber-500/20' : color === 'yellow' ? 'bg-yellow-500/20' : 'bg-emerald-500/20';
+                        const badgeText = color === 'rose' ? 'text-rose-300' : color === 'amber' ? 'text-amber-300' : color === 'yellow' ? 'text-yellow-300' : 'text-emerald-300';
+                        const progressColor = color === 'yellow' ? 'bg-yellow-400' : color === 'rose' ? 'bg-rose-500' : color === 'amber' ? 'bg-amber-500' : 'bg-emerald-500';
+
                         return (
                             <div key={item.id} className="flex items-start gap-4">
                                 <div className={`w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex flex-col items-center justify-center font-black text-sm shrink-0 shadow-lg relative`}>
-                                    <span className={`text-${color}-400`}>{item.days < 10 ? `0${item.days}` : item.days}</span>
+                                    <span className={textColor}>{item.days < 10 ? `0${item.days}` : item.days}</span>
                                     <span className="text-[8px] uppercase text-white/40 tracking-[0.2em]">Days</span>
                                     {isSovereignRisk && (
                                         <div className="absolute -top-1 -right-1 w-3 h-3 bg-purple-500 rounded-full border border-white/20 animate-pulse" title="Sovereign Immunity Risk"></div>
@@ -93,14 +99,14 @@ const DeadlineGuardian: React.FC<DeadlineGuardianProps> = ({
                                 <div className="flex-1">
                                     <div className="flex justify-between items-center">
                                         <p className="text-sm font-bold text-white tracking-tight">{item.entity}</p>
-                                        <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full bg-${color}-500/20 text-${color}-300`}>
+                                        <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${badgeBg} ${badgeText}`}>
                                             {label}
                                         </span>
                                     </div>
                                     <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest mt-0.5">{item.task}</p>
                                     <div className="w-full bg-white/10 h-1.5 rounded-full mt-3 overflow-hidden">
                                         <div
-                                            className={`h-full transition-all duration-1000 bg-${color === 'yellow' ? 'yellow-400' : color === 'rose' ? 'rose-500' : color === 'amber' ? 'amber-500' : 'emerald-500'}`}
+                                            className={`h-full transition-all duration-1000 ${progressColor}`}
                                             style={{
                                                 width: `${val}%`
                                             }}

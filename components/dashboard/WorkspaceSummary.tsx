@@ -94,7 +94,7 @@ const WorkspaceSummary: React.FC = () => {
             value: metrics.activeLoans,
             icon: Briefcase,
             color: 'emerald',
-            gradient: 'from-emerald-500 to-emerald-600',
+            bgColor: 'bg-emerald-500',
             bgGradient: 'from-emerald-50 to-emerald-100/50'
         },
         {
@@ -102,7 +102,7 @@ const WorkspaceSummary: React.FC = () => {
             value: metrics.pendingKYC,
             icon: UserCheck,
             color: 'purple',
-            gradient: 'from-purple-500 to-purple-600',
+            bgColor: 'bg-purple-500',
             bgGradient: 'from-purple-50 to-purple-100/50'
         },
         {
@@ -110,7 +110,7 @@ const WorkspaceSummary: React.FC = () => {
             value: metrics.overdueFilings,
             icon: AlertTriangle,
             color: metrics.overdueFilings > 0 ? 'rose' : 'amber',
-            gradient: metrics.overdueFilings > 0 ? 'from-rose-500 to-rose-600' : 'from-amber-500 to-amber-600',
+            bgColor: metrics.overdueFilings > 0 ? 'bg-rose-500' : 'bg-amber-500',
             bgGradient: metrics.overdueFilings > 0 ? 'from-rose-50 to-rose-100/50' : 'from-amber-50 to-amber-100/50'
         },
         {
@@ -118,7 +118,7 @@ const WorkspaceSummary: React.FC = () => {
             value: formatCurrency(metrics.portfolioValue),
             icon: DollarSign,
             color: 'blue',
-            gradient: 'from-blue-500 to-blue-600',
+            bgColor: 'bg-blue-500',
             bgGradient: 'from-blue-50 to-blue-100/50'
         }
     ];
@@ -141,29 +141,34 @@ const WorkspaceSummary: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {cards.map((card, idx) => {
                 const Icon = card.icon;
+                const borderClass = card.color === 'emerald' ? 'border-emerald-100' : card.color === 'purple' ? 'border-purple-100' : card.color === 'blue' ? 'border-blue-100' : 'border-amber-100'; // Handle rose too if needed
+                const text950 = card.color === 'emerald' ? 'text-emerald-950' : card.color === 'purple' ? 'text-purple-950' : card.color === 'blue' ? 'text-blue-950' : card.color === 'rose' ? 'text-rose-950' : 'text-amber-950';
+                const text600 = card.color === 'emerald' ? 'text-emerald-600/70' : card.color === 'purple' ? 'text-purple-600/70' : card.color === 'blue' ? 'text-blue-600/70' : card.color === 'rose' ? 'text-rose-600/70' : 'text-amber-600/70';
+                const trendColor = card.color === 'emerald' ? 'text-emerald-400' : card.color === 'purple' ? 'text-purple-400' : card.color === 'blue' ? 'text-blue-400' : card.color === 'rose' ? 'text-rose-400' : 'text-amber-400';
+
                 return (
                     <div
                         key={idx}
-                        className={`relative overflow-hidden bg-gradient-to-br ${card.bgGradient} rounded-2xl p-6 shadow-lg border border-${card.color}-100 group hover:shadow-xl transition-all duration-300`}
+                        className={`relative overflow-hidden bg-gradient-to-br ${card.bgGradient} rounded-2xl p-6 shadow-lg border ${borderClass} group hover:shadow-xl transition-all duration-300`}
                     >
                         {/* Icon */}
-                        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${card.gradient} flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                        <div className={`w-12 h-12 rounded-xl ${card.bgColor} flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
                             <Icon size={24} className="text-white" />
                         </div>
 
                         {/* Value */}
-                        <div className={`text-3xl font-extrabold text-${card.color}-950 mb-1`}>
+                        <div className={`text-3xl font-extrabold ${text950} mb-1`}>
                             {typeof card.value === 'number' ? card.value.toLocaleString() : card.value}
                         </div>
 
                         {/* Label */}
-                        <div className={`text-xs font-bold text-${card.color}-600/70 uppercase tracking-wider`}>
+                        <div className={`text-xs font-bold ${text600} uppercase tracking-wider`}>
                             {card.label}
                         </div>
 
                         {/* Trend indicator (optional - can be added later) */}
                         <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <TrendingUp size={16} className={`text-${card.color}-400`} />
+                            <TrendingUp size={16} className={trendColor} />
                         </div>
                     </div>
                 );

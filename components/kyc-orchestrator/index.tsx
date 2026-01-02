@@ -14,13 +14,47 @@ import RiskScore from './RiskScore';
 import LoanSelector from '../common/LoanSelector';
 import { useToast } from '../common/Toast';
 
+import { useLocation } from 'react-router-dom';
+
 const KYCOrchestrator: React.FC = () => {
     const { showToast } = useToast();
+    const location = useLocation();
     const [step, setStep] = useState(1);
     const [kycData, setKycData] = useState<any>({});
     const [completedSteps, setCompletedSteps] = useState<number[]>([]);
     const [isLoanSelectorOpen, setIsLoanSelectorOpen] = useState(false);
     const [loanContext, setLoanContext] = useState<any>(null);
+
+    React.useEffect(() => {
+        if (location.state?.loanId) {
+            // Check if we already have this context to avoid infinite loop or reset
+            if (loanContext?.id !== location.state.loanId) {
+                setLoanContext({
+                    id: location.state.loanId,
+                    borrower_name: location.state.borrower,
+                    // Normalize the data structure
+                    rc_number: location.state.rcNumber,
+                    tin: location.state.tin,
+                    bvn: location.state.bvn
+                });
+                showToast(`KYC initiated for loan: ${location.state.borrower}`, 'success');
+            }
+        }
+    }, [location, loanContext, showToast]);
+
+    // ... (handleStepComplete and steps array remain same)
+
+    const getPrefillData = () => {
+        if (!loanContext) return undefined;
+        // Handle both flat structure (from navigation) and nested structure (from LoanSelector)
+        return {
+            rcNumber: loanContext.rc_number || loanContext.tracking_data?.rc_number,
+            tin: loanContext.tin || loanContext.tracking_data?.tin,
+            bvn: loanContext.bvn || loanContext.tracking_data?.bvn
+        };
+    };
+
+    const prefill = getPrefillData();
 
     const handleStepComplete = (data: any) => {
         setKycData({ ...kycData, ...data });
@@ -95,12 +129,17 @@ const KYCOrchestrator: React.FC = () => {
 
             {/* Active Step */}
             <div className="min-h-[400px]">
-                {step === 1 && <IdentityVerification onComplete={handleStepComplete} />}
+                {step === 1 && <IdentityVerification
+                    onComplete={handleStepComplete}
+                    prefillData={loanContext ? {
+                        bvn: loanContext.bvn || loanContext.tracking_data?.bvn
+                    } : undefined}
+                />}
                 {step === 2 && <CorporateVerification
                     onComplete={handleStepComplete}
                     prefillData={loanContext ? {
-                        rcNumber: loanContext.rc_number,
-                        tin: loanContext.tin
+                        rcNumber: loanContext.rc_number || loanContext.tracking_data?.rc_number,
+                        tin: loanContext.tin || loanContext.tracking_data?.tin
                     } : undefined}
                 />}
                 {step === 3 && <DocumentScanner onComplete={handleStepComplete} />}

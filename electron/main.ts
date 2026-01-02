@@ -25,7 +25,8 @@ function createWindow() {
             contextIsolation: true,
         },
         title: "DocGuard Nigeria",
-        autoHideMenuBar: true
+        autoHideMenuBar: true,
+        icon: path.join(__dirname, '../build/icon.png')
     });
 
     const isDev = !app.isPackaged; // Simple check, or use env var
@@ -37,6 +38,21 @@ function createWindow() {
     } else {
         // In packaged app, index.html is in the dist folder relative to app root
         mainWindow.loadFile(path.join(app.getAppPath(), 'dist', 'index.html'));
+
+        // Disable browser-like keyboard shortcuts for native app behavior
+        mainWindow.webContents.on('before-input-event', (event, input) => {
+            // Block Ctrl+R, Ctrl+Shift+R (refresh), Ctrl+Shift+I (devtools in production)
+            if (input.control && (input.key === 'r' || input.key === 'R')) {
+                event.preventDefault();
+            }
+            if (input.control && input.shift && (input.key === 'i' || input.key === 'I')) {
+                event.preventDefault();
+            }
+            // Block F5 refresh
+            if (input.key === 'F5') {
+                event.preventDefault();
+            }
+        });
     }
 }
 

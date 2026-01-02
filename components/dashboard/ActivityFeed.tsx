@@ -1,9 +1,12 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Clock, MessageSquare, CheckCircle, FileText } from 'lucide-react';
 
 interface ActivityFeedProps {
-    isLoading: boolean;
+    isLoading?: boolean;
     loanId?: string;
+    limit?: number;
+    showViewAll?: boolean;
 }
 
 interface ActivityEvent {
@@ -15,12 +18,12 @@ interface ActivityEvent {
     event_timestamp: string;
 }
 
-const ActivityFeed: React.FC<ActivityFeedProps> = ({ isLoading, loanId }) => {
+const ActivityFeed: React.FC<ActivityFeedProps> = ({ isLoading = false, loanId, limit = 5, showViewAll = true }) => {
     const [events, setEvents] = React.useState<ActivityEvent[]>([]);
 
     React.useEffect(() => {
         fetchActivity();
-    }, [loanId]);
+    }, [loanId, limit]);
 
     const fetchActivity = async () => {
         const { supabase } = await import('../../lib/supabase');
@@ -31,7 +34,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({ isLoading, loanId }) => {
                 .from('activity_feed')
                 .select('*')
                 .order('event_timestamp', { ascending: false })
-                .limit(15);
+                .limit(limit);
 
             // Apply filter if loanId is provided
             if (loanId) {
@@ -57,13 +60,18 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({ isLoading, loanId }) => {
         }
     };
 
-    const getEventColor = (eventType: string) => {
+    const getEventStyles = (eventType: string) => {
         switch (eventType) {
-            case 'loan_created': return 'emerald';
-            case 'filing_submitted': return 'amber';
-            case 'document_generated': return 'blue';
-            case 'kyc_completed': return 'purple';
-            default: return 'slate';
+            case 'loan_created':
+                return { bg: 'bg-emerald-100', text: 'text-emerald-600' };
+            case 'filing_submitted':
+                return { bg: 'bg-amber-100', text: 'text-amber-600' };
+            case 'document_generated':
+                return { bg: 'bg-blue-100', text: 'text-blue-600' };
+            case 'kyc_completed':
+                return { bg: 'bg-purple-100', text: 'text-purple-600' };
+            default:
+                return { bg: 'bg-slate-100', text: 'text-slate-600' };
         }
     };
 
@@ -81,9 +89,9 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({ isLoading, loanId }) => {
     };
 
     if (isLoading) {
+        // ... loading state ...
         return (
             <div className="bg-white rounded-2xl p-8 shadow-lg border border-emerald-50">
-                <h2 className="text-lg font-black text-emerald-950 mb-6">Recent Activity</h2>
                 <div className="space-y-4">
                     {[1, 2, 3].map(i => (
                         <div key={i} className="animate-pulse flex gap-4">
@@ -116,20 +124,22 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({ isLoading, loanId }) => {
         <div className="bg-white rounded-2xl p-8 shadow-lg border border-emerald-50">
             <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-black text-emerald-950">Recent Activity</h2>
-                <button className="text-xs text-emerald-600 hover:text-emerald-700 font-semibold">
-                    View All →
-                </button>
+                {showViewAll && (
+                    <Link to="/activity" className="text-xs text-emerald-600 hover:text-emerald-700 font-semibold cursor-pointer">
+                        View All →
+                    </Link>
+                )}
             </div>
 
             <div className="space-y-4">
                 {events.map((event, idx) => {
                     const Icon = getEventIcon(event.event_type);
-                    const color = getEventColor(event.event_type);
+                    const styles = getEventStyles(event.event_type);
 
                     return (
                         <div key={`${event.event_id}-${idx}`} className="flex items-start gap-4 group hover:bg-emerald-50/50 p-3 rounded-xl transition-colors">
-                            <div className={`w-10 h-10 rounded-full bg-${color}-100 flex items-center justify-center flex-shrink-0`}>
-                                <Icon size={18} className={`text-${color}-600`} />
+                            <div className={`w-10 h-10 rounded-full ${styles.bg} flex items-center justify-center flex-shrink-0`}>
+                                <Icon size={18} className={styles.text} />
                             </div>
 
                             <div className="flex-1 min-w-0">

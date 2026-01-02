@@ -30,6 +30,7 @@ const LoanDetailView: React.FC<LoanDetailProps> = ({ loanId, onBack }) => {
     const [loan, setLoan] = useState<Loan | null>(null);
     const [documents, setDocuments] = useState<any[]>([]);
     const [filings, setFilings] = useState<any[]>([]);
+    const [kycRequests, setKycRequests] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     const [isActionMenuOpen, setIsActionMenuOpen] = React.useState(false);
@@ -93,6 +94,17 @@ const LoanDetailView: React.FC<LoanDetailProps> = ({ loanId, onBack }) => {
 
             if (filingsError) throw filingsError;
             setFilings(filingsData || []);
+
+            // Fetch related KYC
+            const { data: kycData, error: kycError } = await supabase
+                .from('kyc_requests')
+                .select('*')
+                .eq('loan_id', loanId)
+                .order('created_at', { ascending: false });
+
+            // Allow error if kyc table doesn't have loan_id yet? No, I verified it does.
+            if (kycError && kycError.code !== 'PGRST100') throw kycError;
+            setKycRequests(kycData || []);
 
         } catch (error: any) {
             console.error('Error fetching details:', error);
@@ -172,9 +184,9 @@ const LoanDetailView: React.FC<LoanDetailProps> = ({ loanId, onBack }) => {
                                         </button>
                                     ))}
                                 </div>
-                                <div className="p-2 bg-gray-50/50">
+                                <div className="p-2 bg-gray-50/50 space-y-1">
                                     <button
-                                        className="w-full text-left px-3 py-2 rounded-lg text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                        className="w-full text-left px-3 py-2 rounded-lg text-xs font-bold text-amber-600 hover:bg-amber-50 flex items-center gap-2"
                                         onClick={() => {
                                             if (window.confirm('Are you sure you want to close this facility?')) {
                                                 handleUpdateStage('Closed');
@@ -183,12 +195,109 @@ const LoanDetailView: React.FC<LoanDetailProps> = ({ loanId, onBack }) => {
                                     >
                                         <XCircle size={14} /> Close Facility
                                     </button>
+                                    <button
+                                        className="w-full text-left px-3 py-2 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 flex items-center gap-2"
+                                        onClick={async () => {
+                                            if (window.confirm('⚠️ PERMANENT DELETE: This will permanently remove this facility and all associated data. This action cannot be undone. Continue?')) {
+                                                try {
+                                                    const { error } = await supabase.from('loans').delete().eq('id', loan.id);
+                                                    if (error) throw error;
+                                                    showToast('Facility deleted permanently', 'success');
+                                                    onBack(); // Navigate back to list
+                                                } catch (err: any) {
+                                                    console.error(err);
+                                                    showToast('Failed to delete facility: ' + err.message, 'error');
+                                                }
+                                            }
+                                        }}
+                                    >
+                                        <XCircle size={14} /> Delete Permanently
+                                    </button>
                                 </div>
                             </div>
                         )}
                     </div>
                 </div>
             </div>
+
+            {/* Workflow Guide */}
+            {!isLoading && (
+                <div className="bg-gradient-to-r from-emerald-50 to-white p-6 rounded-2xl border border-emerald-100 shadow-sm mb-6">
+                    <h2 className="text-sm font-black text-emerald-900 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <Briefcase size={16} /> Recommended Next Action
+                    </h2>
+
+                    {/* Step 1: KYC */}
+                    {kycRequests.every(k => k.status !== 'Approved') && (
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="font-bold text-emerald-950">Verify Borrower Identity</h3>
+                                <p className="text-xs text-gray-500 mt-1">KYC verification is required before generating legal documents.</p>
+                            </div>
+                            <button
+                                onClick={() => navigate('/kyc', {
+                                    state: {
+                                        loanId: loan.id,
+                                        borrower: loan.borrower_name,
+                                        rcNumber: loan.tracking_data?.rc_number,
+                                        tin: loan.tracking_data?.tin,
+                                        bvn: loan.tracking_data?.bvn
+                                    }
+                                })}
+                                className="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-lg hover:bg-emerald-700 transition-all"
+                            >
+                                Start KYC Check
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Step 2: Documents (only if KYC approved) */}
+                    {kycRequests.some(k => k.status === 'Approved') && documents.length === 0 && (
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="font-bold text-emerald-950">Generate Security Documents</h3>
+                                <p className="text-xs text-gray-500 mt-1">Identity verified. Proceed to generate legal agreements.</p>
+                            </div>
+                            <button
+                                onClick={() => navigate('/doc-builder', {
+                                    state: {
+                                        loanId: loan.id,
+                                        borrower: loan.borrower_name,
+                                        rcNumber: loan.tracking_data?.rc_number // Pass defaults if needed
+                                    }
+                                })}
+                                className="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-lg hover:bg-emerald-700 transition-all"
+                            >
+                                Build Documents
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Step 3: Filings (only if Docs exist) */}
+                    {documents.length > 0 && filings.length === 0 && (
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="font-bold text-emerald-950">Register Collateral (CAC)</h3>
+                                <p className="text-xs text-gray-500 mt-1">Documents generated. File the charge with the registry.</p>
+                            </div>
+                            <button
+                                onClick={() => navigate('/registry', { state: { loanId: loan.id, borrower: loan.borrower_name } })}
+                                className="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-lg hover:bg-emerald-700 transition-all"
+                            >
+                                Register Charge
+                            </button>
+                        </div>
+                    )}
+
+                    {/* All Done */}
+                    {filings.length > 0 && (
+                        <div className="flex items-center gap-3 text-emerald-700 bg-emerald-100/50 p-3 rounded-xl border border-emerald-100">
+                            <CheckCircle size={20} />
+                            <span className="font-bold text-sm">All origination steps completed. Facility is active.</span>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Pipeline Stepper */}
             <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">

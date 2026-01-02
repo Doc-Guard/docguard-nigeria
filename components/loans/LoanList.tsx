@@ -18,6 +18,7 @@ interface Loan {
     amount: number;
     currency: string;
     loan_type: string;
+    pipeline_stage?: string;
     status: 'Active' | 'Pending' | 'Closed' | 'Defaulted';
     created_at: string;
     tracking_data: {
@@ -36,6 +37,7 @@ const LoanList: React.FC<LoanListProps> = ({ onSelectLoan, onNewLoan }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filter, setFilter] = useState<'All' | 'Active' | 'Pending'>('All');
+    const [stageFilter, setStageFilter] = useState<string>('All');
 
     useEffect(() => {
         if (!user) return;
@@ -58,9 +60,13 @@ const LoanList: React.FC<LoanListProps> = ({ onSelectLoan, onNewLoan }) => {
 
     const filteredLoans = loans.filter(loan => {
         const matchesSearch = loan.borrower_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            loan.loan_type.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesFilter = filter === 'All' || loan.status === filter;
-        return matchesSearch && matchesFilter;
+            loan.loan_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            loan.id.toLowerCase().includes(searchTerm.toLowerCase());
+
+        const matchesStatus = filter === 'All' || loan.status === filter;
+        const matchesStage = stageFilter === 'All' || loan.pipeline_stage === stageFilter;
+
+        return matchesSearch && matchesStatus && matchesStage;
     });
 
     const getStatusColor = (status: string) => {
@@ -141,19 +147,32 @@ const LoanList: React.FC<LoanListProps> = ({ onSelectLoan, onNewLoan }) => {
                         className="w-full pl-12 pr-4 py-3 bg-transparent outline-none text-emerald-950 font-medium placeholder:text-gray-400"
                     />
                 </div>
-                <div className="flex gap-2 p-1">
+                <div className="flex gap-2 p-1 overflow-x-auto">
                     {(['All', 'Active', 'Pending'] as const).map((f) => (
                         <button
                             key={f}
                             onClick={() => setFilter(f)}
-                            className={`px-6 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${filter === f
-                                    ? 'bg-emerald-100 text-emerald-800'
-                                    : 'text-gray-500 hover:bg-gray-50'
+                            className={`px-6 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap ${filter === f
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'text-gray-500 hover:bg-gray-50'
                                 }`}
                         >
                             {f}
                         </button>
                     ))}
+
+                    <div className="w-px h-8 bg-gray-200 mx-2" />
+
+                    <select
+                        value={stageFilter}
+                        onChange={(e) => setStageFilter(e.target.value)}
+                        className="px-4 py-2 bg-gray-50 rounded-xl text-xs font-bold uppercase tracking-wider text-gray-600 border border-gray-200 outline-none focus:border-emerald-500"
+                    >
+                        <option value="All">All Stages</option>
+                        {['Review', 'Approval', 'Documentation', 'Disbursement', 'Active'].map(s => (
+                            <option key={s} value={s}>{s}</option>
+                        ))}
+                    </select>
                 </div>
             </div>
 
@@ -189,6 +208,12 @@ const LoanList: React.FC<LoanListProps> = ({ onSelectLoan, onNewLoan }) => {
                                             </span>
                                             <span className="w-1 h-1 rounded-full bg-gray-300" />
                                             <span>{loan.loan_type}</span>
+                                            {loan.pipeline_stage && (
+                                                <>
+                                                    <span className="w-1 h-1 rounded-full bg-gray-300" />
+                                                    <span className="text-emerald-600 font-bold">{loan.pipeline_stage}</span>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

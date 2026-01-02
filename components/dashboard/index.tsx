@@ -54,7 +54,7 @@ const Dashboard: React.FC = () => {
                 .limit(5);
 
             const now = new Date();
-            const deadlineItems = pendingFilings?.map(f => {
+            const filingDeadlines = pendingFilings?.map(f => {
                 const createdDate = new Date(f.created_at);
                 // Calculate days since creation (90-day window from creation)
                 const perfectionDeadline = new Date(createdDate);
@@ -69,7 +69,36 @@ const Dashboard: React.FC = () => {
                 };
             }) || [];
 
-            setDeadlines(deadlineItems);
+            // Also fetch pending loans (not yet in 'Active' or 'Closed' status) as deadline items
+            const { data: pendingLoans } = await supabase
+                .from('loans')
+                .select('id, borrower_name, pipeline_stage, created_at')
+                .eq('user_id', user.id)
+                .not('pipeline_stage', 'in', '("Active","Closed")')
+                .order('created_at', { ascending: true })
+                .limit(5);
+
+            const loanDeadlines = pendingLoans?.map(l => {
+                const createdDate = new Date(l.created_at);
+                // Assume a 30-day target to move through pipeline
+                const targetDate = new Date(createdDate);
+                targetDate.setDate(targetDate.getDate() + 30);
+                const daysRemaining = Math.max(0, Math.ceil((targetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+
+                return {
+                    id: l.id,
+                    days: daysRemaining,
+                    entity: l.borrower_name,
+                    task: `Move to ${l.pipeline_stage === 'Review' ? 'Approval' : l.pipeline_stage === 'Approval' ? 'Documentation' : 'Active'}`
+                };
+            }) || [];
+
+            // Combine and sort by days remaining (most urgent first)
+            const combinedDeadlines = [...filingDeadlines, ...loanDeadlines]
+                .sort((a, b) => a.days - b.days)
+                .slice(0, 5);
+
+            setDeadlines(combinedDeadlines);
 
         } catch (e) {
             console.error("Dashboard fetch failed", e);

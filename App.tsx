@@ -10,6 +10,7 @@ const Analytics = lazy(() => import('./components/analytics'));
 const Loans = lazy(() => import('./components/loans'));
 const Login = lazy(() => import('./components/auth'));
 const Settings = lazy(() => import('./components/settings'));
+const ActivityPage = lazy(() => import('./components/dashboard/ActivityPage'));
 import MainLayout from './components/layout/MainLayout';
 import { AuthProvider, useAuth } from './components/auth/AuthContext';
 import { ToastProvider } from './components/common/Toast';
@@ -61,6 +62,7 @@ const AppContent: React.FC = () => {
         <Route path="/registry" element={<ChargeRegistry />} />
         <Route path="/kyc" element={<KYCOrchestrator />} />
         <Route path="/analytics" element={<Analytics />} />
+        <Route path="/activity" element={<ActivityPage />} />
         <Route path="/settings" element={<Settings />} />
       </Routes>
     </MainLayout>

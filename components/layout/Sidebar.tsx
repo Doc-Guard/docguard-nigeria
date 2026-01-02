@@ -24,7 +24,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
             <div className="p-8">
                 <div className="flex items-center gap-3">
                     <div className="w-11 h-11 bg-[#008751] rounded-xl flex items-center justify-center font-bold text-xl shadow-lg shadow-emerald-950/40 transform hover:rotate-3 transition-transform">
-                        <Leaf size={24} className="text-white fill-current" />
+                        <ShieldCheck size={24} className="text-white fill-current" />
                     </div>
                     <div>
                         <span className="text-2xl font-extrabold tracking-tight block leading-none text-white">DocGuard</span>

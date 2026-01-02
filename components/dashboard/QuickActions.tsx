@@ -11,32 +11,32 @@ const QuickActions: React.FC = () => {
             label: 'Create Loan',
             description: 'Start new facility',
             route: '/loans?action=create',
-            color: 'emerald',
-            gradient: 'from-emerald-500 to-emerald-600'
+            bgColor: 'bg-emerald-500',
+            shadowColor: 'shadow-emerald-200/50'
         },
         {
             icon: FileText,
             label: 'Generate Document',
             description: 'LMA templates',
             route: '/doc-builder',
-            color: 'blue',
-            gradient: 'from-blue-500 to-blue-600'
+            bgColor: 'bg-blue-500',
+            shadowColor: 'shadow-blue-200/50'
         },
         {
             icon: ShieldCheck,
             label: 'File Charge',
             description: 'CAC registry',
             route: '/registry',
-            color: 'amber',
-            gradient: 'from-amber-500 to-amber-600'
+            bgColor: 'bg-amber-500',
+            shadowColor: 'shadow-amber-200/50'
         },
         {
             icon: UserCheck,
             label: 'Run KYC Check',
             description: 'Verify entities',
             route: '/kyc',
-            color: 'purple',
-            gradient: 'from-purple-500 to-purple-600'
+            bgColor: 'bg-purple-500',
+            shadowColor: 'shadow-purple-200/50'
         }
     ];
 
@@ -44,7 +44,7 @@ const QuickActions: React.FC = () => {
         <div className="bg-white rounded-2xl p-8 shadow-lg border border-emerald-50">
             <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-black text-emerald-950">Quick Actions</h2>
-                <span className="text-xs text-emerald text-emerald-600/60 font-semibold">One-click workflows</span>
+                <span className="text-xs text-emerald-600/60 font-semibold">One-click workflows</span>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -56,8 +56,8 @@ const QuickActions: React.FC = () => {
                             onClick={() => navigate(action.route)}
                             className="group relative overflow-hidden p-6 rounded-xl border-2 border-transparent hover:border-emerald-200 transition-all duration-300 bg-gradient-to-br from-emerald-50/50 to-white hover:shadow-lg"
                         >
-                            {/* Icon Container */}
-                            <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${action.gradient} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-${action.color}-200/50`}>
+                            {/* Icon Container - Using solid bg instead of gradient */}
+                            <div className={`w-12 h-12 rounded-lg ${action.bgColor} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg ${action.shadowColor}`}>
                                 <Icon size={24} className="text-white" />
                             </div>
 

@@ -55,7 +55,6 @@ const OriginationWizard: React.FC<OriginationWizardProps> = ({ onSuccess }) => {
                 tracking_data: {
                     origination_date: new Date().toISOString(),
                     next_review: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // 90 days out
-                    // User Request: "prove loan originator to include entries... TIN, BVN, RC Number"
                     rc_number: rcNumber,
                     tin: tin,
                     bvn: bvn
@@ -177,54 +176,6 @@ const OriginationWizard: React.FC<OriginationWizardProps> = ({ onSuccess }) => {
                             </select>
                         </div>
                     </div>
-                </div>
-
-                {/* 3. Compliance & Identity */}
-                <div className="pt-6 border-t border-dashed border-emerald-100">
-                    <h3 className="text-sm font-black text-emerald-900 uppercase tracking-widest mb-6 flex items-center gap-2">
-                        <ShieldCheck size={16} /> Compliance & Identity
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider pl-1">RC Number</label>
-                            <input
-                                type="text"
-                                value={rcNumber}
-                                onChange={(e) => setRcNumber(e.target.value)}
-                                placeholder="RC123456"
-                                className={`w-full px-4 py-3 bg-white rounded-xl text-sm font-bold text-emerald-950 outline-none border transition-all ${rcNumber && !/^RC\d+$/i.test(rcNumber)
-                                        ? 'border-red-200 focus:border-red-500 focus:ring-2 focus:ring-red-100'
-                                        : 'border-gray-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100'
-                                    }`}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider pl-1">TIN (Tax ID)</label>
-                            <input
-                                type="text"
-                                value={tin}
-                                onChange={(e) => setTin(e.target.value)}
-                                placeholder="10-digit TIN"
-                                className="w-full px-4 py-3 bg-white rounded-xl text-sm font-bold text-emerald-950 outline-none border border-gray-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider pl-1">BVN (Director)</label>
-                            <input
-                                type="text"
-                                value={bvn}
-                                onChange={(e) => setBvn(e.target.value)}
-                                placeholder="11-digit BVN"
-                                maxLength={11}
-                                className="w-full px-4 py-3 bg-white rounded-xl text-sm font-bold text-emerald-950 outline-none border border-gray-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all"
-                            />
-                        </div>
-                    </div>
-                    {rcNumber && !/^RC\d+$/i.test(rcNumber) && (
-                        <p className="text-red-500 text-xs mt-2 font-medium flex items-center gap-1">
-                            <AlertTriangle size={12} /> Format invalid: Must start with "RC" followed by numbers
-                        </p>
-                    )}
                 </div>
 
                 {/* 3. Compliance & Identity */}

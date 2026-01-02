@@ -145,7 +145,8 @@ create policy "Users can update own KYC requests." on kyc_requests
 DROP VIEW IF EXISTS activity_feed;
 
 -- Unified activity feed view
-CREATE VIEW activity_feed AS
+-- Unified activity feed view
+CREATE OR REPLACE VIEW activity_feed AS
 -- Loans: loan_created events
 SELECT 
     'loan_created' as event_type,
@@ -155,7 +156,7 @@ SELECT
     l.status as metadata,
     l.created_at as event_timestamp,
     l.user_id,
-    l.id as loan_id
+    l.id::uuid as loan_id
 FROM loans l
 
 UNION ALL
@@ -195,9 +196,9 @@ SELECT
     k.entity_name,
     'KYC Approved: ' || k.entity_name as description,
     'Approved' as metadata,
-    k.updated_at as event_timestamp,
+    k.created_at as event_timestamp,
     k.user_id,
-    NULL::uuid as loan_id
+    k.loan_id::uuid as loan_id
 FROM kyc_requests k
 WHERE k.status = 'Approved'
 
@@ -207,7 +208,7 @@ ORDER BY event_timestamp DESC;
 GRANT SELECT ON activity_feed TO authenticated;
 
 -- Documentation
-COMMENT ON VIEW activity_feed IS 'Unified activity feed showing recent events across loans, filings, documents, and KYC requests. Includes loan_id for filtering.';
+COMMENT ON VIEW activity_feed IS 'Unified activity feed showing recent events across loans, filings, documents, and KYC requests. Used by Dashboard component.';
 
 
 -- TRIGGER: Auto-create profile on signup

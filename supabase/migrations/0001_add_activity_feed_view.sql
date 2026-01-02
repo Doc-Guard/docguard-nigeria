@@ -1,12 +1,8 @@
--- Migration: Add activity_feed view for Dashboard
--- Version: 0.6.1
--- Description: Creates a unified view to query recent activity across all modules, linked to loans
-
 -- Drop existing view if it exists
 DROP VIEW IF EXISTS activity_feed;
 
--- Create activity_feed view with correct column mappings and loan_id
-CREATE VIEW activity_feed AS
+-- Unified activity feed view
+CREATE OR REPLACE VIEW activity_feed AS
 -- Loans: loan_created events
 SELECT 
     'loan_created' as event_type,
@@ -16,7 +12,7 @@ SELECT
     l.status as metadata,
     l.created_at as event_timestamp,
     l.user_id,
-    l.id as loan_id
+    l.id::uuid as loan_id
 FROM loans l
 
 UNION ALL
@@ -56,16 +52,11 @@ SELECT
     k.entity_name,
     'KYC Approved: ' || k.entity_name as description,
     'Approved' as metadata,
-    k.updated_at as event_timestamp,
+    k.created_at as event_timestamp,
     k.user_id,
-    NULL::uuid as loan_id
+    k.loan_id::uuid as loan_id
 FROM kyc_requests k
-WHERE k.status = 'Approved'
+WHERE k.status = 'Approved';
 
-ORDER BY event_timestamp DESC;
-
--- Grant access to authenticated users
+-- Grant access
 GRANT SELECT ON activity_feed TO authenticated;
-
--- Add comment for documentation
-COMMENT ON VIEW activity_feed IS 'Unified activity feed showing recent events across loans, filings, documents, and KYC requests. Includes loan_id for filtering.';
