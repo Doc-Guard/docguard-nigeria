@@ -248,7 +248,8 @@ const ChargeRegistry: React.FC = () => {
                                 }
 
                                 const blob = new Blob([new Uint8Array(bytes)], { type: 'image/png' });
-                                const fileName = `evidence/${user.id}/${rpaResult.filingRef}_${Date.now()}.png`;
+                                // Remove 'evidence/' prefix - path should be user_id/filename for RLS to work
+                                const fileName = `${user.id}/${rpaResult.filingRef}_${Date.now()}.png`;
 
                                 const { error: uploadError } = await supabase.storage
                                     .from('evidence') // Ensure this bucket exists in Supabase
