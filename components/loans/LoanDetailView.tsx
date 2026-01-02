@@ -1,16 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-    ArrowLeft,
-    FileText,
-    Landmark,
-    Briefcase,
-    Calendar,
-    Clock,
-    ShieldCheck,
-    AlertTriangle,
-    Plus,
-    ExternalLink
-} from 'lucide-react';
+import { ArrowLeft, Clock, Calendar, ShieldCheck, FileText, Landmark, ExternalLink, Plus, ChevronRight, Briefcase, ChevronDown, CheckCircle, XCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../common/Toast';
 import { useNavigate } from 'react-router-dom';
@@ -43,14 +32,39 @@ const LoanDetailView: React.FC<LoanDetailProps> = ({ loanId, onBack }) => {
     const [filings, setFilings] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        if (loanId) fetchLoanDetails();
+    const [isActionMenuOpen, setIsActionMenuOpen] = React.useState(false);
+
+    const handleUpdateStage = async (newStage: string) => {
+        setIsLoading(true);
+        try {
+            const { error } = await supabase
+                .from('loans')
+                .update({ pipeline_stage: newStage })
+                .eq('id', loan?.id);
+
+            if (error) throw error;
+
+            showToast(`Facility moved to ${newStage}`, 'success');
+            fetchLoanDetails(); // Refresh
+        } catch (error) {
+            console.error(error);
+            showToast('Failed to update stage', 'error');
+        } finally {
+            setIsLoading(false);
+            setIsActionMenuOpen(false);
+        }
+    };
+
+    React.useEffect(() => {
+        if (loanId) {
+            fetchLoanDetails();
+        }
     }, [loanId]);
 
     const fetchLoanDetails = async () => {
         setIsLoading(true);
         try {
-            // 1. Fetch Loan
+            // Fetch loan details
             const { data: loanData, error: loanError } = await supabase
                 .from('loans')
                 .select('*')
@@ -60,20 +74,24 @@ const LoanDetailView: React.FC<LoanDetailProps> = ({ loanId, onBack }) => {
             if (loanError) throw loanError;
             setLoan(loanData);
 
-            // 2. Fetch Linked Documents
-            const { data: docsData } = await supabase
+            // Fetch related documents
+            const { data: docsData, error: docsError } = await supabase
                 .from('documents')
                 .select('*')
                 .eq('loan_id', loanId)
-                .order('updated_at', { ascending: false });
+                .order('created_at', { ascending: false });
+
+            if (docsError) throw docsError;
             setDocuments(docsData || []);
 
-            // 3. Fetch Linked Filings
-            const { data: filingsData } = await supabase
+            // Fetch related filings
+            const { data: filingsData, error: filingsError } = await supabase
                 .from('filings')
                 .select('*')
                 .eq('loan_id', loanId)
-                .order('submission_date', { ascending: false });
+                .order('created_at', { ascending: false });
+
+            if (filingsError) throw filingsError;
             setFilings(filingsData || []);
 
         } catch (error: any) {
@@ -118,16 +136,57 @@ const LoanDetailView: React.FC<LoanDetailProps> = ({ loanId, onBack }) => {
                     </div>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex gap-3 relative">
                     <button
                         onClick={() => navigate('/doc-builder', { state: { loanId: loan.id, borrower: loan.borrower_name } })}
                         className="flex items-center gap-2 px-6 py-3 bg-white border border-emerald-100 rounded-xl text-xs font-black uppercase tracking-widest text-emerald-900 hover:bg-emerald-50 transition-all shadow-sm"
                     >
                         <Plus size={16} /> New Document
                     </button>
-                    <button className="flex items-center gap-2 px-6 py-3 bg-[#008751] text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-700 shadow-xl shadow-emerald-900/20 transition-all active:scale-95">
-                        Manage Facility
-                    </button>
+
+                    <div className="relative">
+                        <button
+                            onClick={() => setIsActionMenuOpen(!isActionMenuOpen)}
+                            className="flex items-center gap-2 px-6 py-3 bg-[#008751] text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-700 shadow-xl shadow-emerald-900/20 transition-all active:scale-95"
+                        >
+                            Manage Facility
+                            <ChevronDown size={14} className={`transition-transform ${isActionMenuOpen ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        {isActionMenuOpen && (
+                            <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200">
+                                <div className="p-2 border-b border-gray-50">
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 py-1 block">Update Stage</span>
+                                    {['Review', 'Approval', 'Documentation', 'Disbursement', 'Active'].map((stage) => (
+                                        <button
+                                            key={stage}
+                                            disabled={loan.pipeline_stage === stage}
+                                            onClick={() => handleUpdateStage(stage)}
+                                            className={`w-full text-left px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-between group transition-colors ${loan.pipeline_stage === stage
+                                                ? 'bg-emerald-50 text-emerald-700 cursor-default'
+                                                : 'text-gray-600 hover:bg-gray-50 hover:text-emerald-900'
+                                                }`}
+                                        >
+                                            {stage}
+                                            {loan.pipeline_stage === stage && <CheckCircle size={12} />}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="p-2 bg-gray-50/50">
+                                    <button
+                                        className="w-full text-left px-3 py-2 rounded-lg text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                        onClick={() => {
+                                            if (window.confirm('Are you sure you want to close this facility?')) {
+                                                handleUpdateStage('Closed');
+                                            }
+                                        }}
+                                    >
+                                        <XCircle size={14} /> Close Facility
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
