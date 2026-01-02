@@ -1,7 +1,7 @@
 {
   "name": "docguard",
   "private": true,
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "AI-Powered Loan Compliance & Origination Platform for Nigeria (LMA/CAC/KYC)",
   "author": "LMA Edge Team",
   "type": "module",
