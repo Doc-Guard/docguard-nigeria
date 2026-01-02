@@ -14,6 +14,8 @@ import {
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../common/Toast';
 import { useNavigate } from 'react-router-dom';
+import PipelineStepper from './PipelineStepper';
+import ActivityFeed from '../dashboard/ActivityFeed';
 
 interface LoanDetailProps {
     loanId: string;
@@ -129,6 +131,12 @@ const LoanDetailView: React.FC<LoanDetailProps> = ({ loanId, onBack }) => {
                 </div>
             </div>
 
+            {/* Pipeline Stepper */}
+            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Facility Lifecycle</h3>
+                <PipelineStepper currentStage={loan.pipeline_stage || 'Review'} />
+            </div>
+
             {/* Key Metrics Grid */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="bg-emerald-50/50 p-6 rounded-2xl border border-emerald-100">
@@ -161,78 +169,90 @@ const LoanDetailView: React.FC<LoanDetailProps> = ({ loanId, onBack }) => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Documents Section */}
-                <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm">
-                    <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-lg font-black text-emerald-950 flex items-center gap-2">
-                            <FileText size={20} className="text-emerald-600" />
-                            Security Documents
-                        </h3>
-                        <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-bold text-gray-500">{documents.length}</span>
+                {/* Documents & Filings Column */}
+                <div className="space-y-8">
+                    {/* Documents Section */}
+                    <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-lg font-black text-emerald-950 flex items-center gap-2">
+                                <FileText size={20} className="text-emerald-600" />
+                                Security Documents
+                            </h3>
+                            <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-bold text-gray-500">{documents.length}</span>
+                        </div>
+
+                        <div className="space-y-3">
+                            {documents.length === 0 ? (
+                                <div className="py-8 text-center text-gray-400 text-sm">No documents generated yet.</div>
+                            ) : documents.map(doc => (
+                                <div key={doc.id} className="p-4 rounded-xl border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/30 transition-all flex justify-between items-center group cursor-pointer"
+                                    onClick={() => navigate('/doc-builder', { state: { docId: doc.id } })}>
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold text-xs uppercase">
+                                            PDF
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-gray-800 text-sm">{doc.template_type?.replace(/-/g, ' ').toUpperCase() || 'UNTITLED DOC'}</p>
+                                            <p className="text-xs text-gray-400 mt-0.5">Updated: {new Date(doc.updated_at).toLocaleDateString()}</p>
+                                        </div>
+                                    </div>
+                                    <div className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${doc.status === 'executed' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'
+                                        }`}>
+                                        {doc.status}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
 
-                    <div className="space-y-3">
-                        {documents.length === 0 ? (
-                            <div className="py-8 text-center text-gray-400 text-sm">No documents generated yet.</div>
-                        ) : documents.map(doc => (
-                            <div key={doc.id} className="p-4 rounded-xl border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/30 transition-all flex justify-between items-center group cursor-pointer"
-                                onClick={() => navigate('/doc-builder', { state: { docId: doc.id } })}>
-                                <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold text-xs uppercase">
-                                        PDF
+                    {/* Filings Section */}
+                    <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-lg font-black text-emerald-950 flex items-center gap-2">
+                                <Landmark size={20} className="text-emerald-600" />
+                                Regulatory Filings
+                            </h3>
+                            <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-bold text-gray-500">{filings.length}</span>
+                        </div>
+
+                        <div className="space-y-3">
+                            {filings.length === 0 ? (
+                                <div className="py-8 text-center text-gray-400 text-sm">No filings submitted yet.</div>
+                            ) : filings.map(filing => (
+                                <div key={filing.id} className="p-4 rounded-xl border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/30 transition-all flex justify-between items-center">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs uppercase">
+                                            CAC
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-gray-800 text-sm">{filing.filing_type}</p>
+                                            <p className="text-xs text-gray-400 mt-0.5">Ref: {filing.reference_id}</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="font-bold text-gray-800 text-sm">{doc.template_type?.replace(/-/g, ' ').toUpperCase() || 'UNTITLED DOC'}</p>
-                                        <p className="text-xs text-gray-400 mt-0.5">Updated: {new Date(doc.updated_at).toLocaleDateString()}</p>
+                                    <div className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${filing.status === 'Perfected' ? 'bg-emerald-100 text-emerald-700' :
+                                        filing.status === 'Submitted' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'
+                                        }`}>
+                                        {filing.status}
                                     </div>
                                 </div>
-                                <div className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${doc.status === 'executed' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'
-                                    }`}>
-                                    {doc.status}
-                                </div>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
+                        <button
+                            onClick={() => navigate('/registry')}
+                            className="w-full mt-4 py-3 text-xs font-bold text-emerald-600 uppercase tracking-widest hover:bg-emerald-50 rounded-xl transition-colors flex items-center justify-center gap-2"
+                        >
+                            Go to Registry <ExternalLink size={14} />
+                        </button>
                     </div>
                 </div>
 
-                {/* Filings Section */}
-                <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm">
-                    <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-lg font-black text-emerald-950 flex items-center gap-2">
-                            <Landmark size={20} className="text-emerald-600" />
-                            Regulatory Filings
-                        </h3>
-                        <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-bold text-gray-500">{filings.length}</span>
-                    </div>
-
-                    <div className="space-y-3">
-                        {filings.length === 0 ? (
-                            <div className="py-8 text-center text-gray-400 text-sm">No filings submitted yet.</div>
-                        ) : filings.map(filing => (
-                            <div key={filing.id} className="p-4 rounded-xl border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/30 transition-all flex justify-between items-center">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs uppercase">
-                                        CAC
-                                    </div>
-                                    <div>
-                                        <p className="font-bold text-gray-800 text-sm">{filing.filing_type}</p>
-                                        <p className="text-xs text-gray-400 mt-0.5">Ref: {filing.reference_id}</p>
-                                    </div>
-                                </div>
-                                <div className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${filing.status === 'Perfected' ? 'bg-emerald-100 text-emerald-700' :
-                                        filing.status === 'Submitted' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'
-                                    }`}>
-                                    {filing.status}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                    <button
-                        onClick={() => navigate('/registry')}
-                        className="w-full mt-4 py-3 text-xs font-bold text-emerald-600 uppercase tracking-widest hover:bg-emerald-50 rounded-xl transition-colors flex items-center justify-center gap-2"
-                    >
-                        Go to Registry <ExternalLink size={14} />
-                    </button>
+                {/* Activity Feed Column */}
+                <div>
+                    <h3 className="text-lg font-black text-emerald-950 mb-6 flex items-center gap-2">
+                        <Clock size={20} className="text-emerald-600" />
+                        Facility History
+                    </h3>
+                    <ActivityFeed isLoading={isLoading} loanId={loanId} />
                 </div>
             </div>
         </div>
