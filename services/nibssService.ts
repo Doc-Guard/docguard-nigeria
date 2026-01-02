@@ -12,6 +12,10 @@ export interface BVNRecord {
     status: 'VERIFIED' | 'NOT_FOUND';
 }
 
+export interface BVNValidationContext {
+    entityName?: string; // Name from linked loan (e.g., borrower_name)
+}
+
 class NIBSSService {
     private static instance: NIBSSService;
 
@@ -26,54 +30,33 @@ class NIBSSService {
 
     /**
      * Validates a Bank Verification Number
+     * NOTE: This is a simulation. In production, integrate with real NIBSS API.
+     * @param bvn - The 11-digit BVN to validate
+     * @param context - Optional context containing entity information from linked loan
      */
-    public async validateBVN(bvn: string): Promise<BVNRecord> {
+    public async validateBVN(bvn: string, context?: BVNValidationContext): Promise<BVNRecord> {
         // Simulate API latency
         await new Promise(r => setTimeout(r, 1500));
 
         if (!/^\d{11}$/.test(bvn)) {
-            throw new Error("Invalid BVN Format");
+            throw new Error("Invalid BVN Format - must be 11 digits");
         }
 
-        // Mock Data
-        if (bvn === '22220000111') {
-            return {
-                bvn,
-                firstName: "Aliko",
-                lastName: "Dangote",
-                dob: "1957-04-10",
-                phone: "08031234567",
-                gender: 'Male',
-                status: 'VERIFIED'
-            };
-        }
+        // In production, this would call the actual NIBSS API
+        // For simulation, we accept any valid format and return the entity context name
+        const nameParts = (context?.entityName || 'Verified Individual').split(' ');
+        const firstName = nameParts[0] || 'Verified';
+        const lastName = nameParts.slice(1).join(' ') || 'Individual';
 
-        if (bvn === '12345678901') {
-            return {
-                bvn,
-                firstName: "Nneka",
-                lastName: "Okonkwo",
-                dob: "1985-08-21",
-                phone: "07080009999",
-                gender: 'Female',
-                status: 'VERIFIED'
-            }
-        }
-
-        // Allow any 11-digit BVN for Demo/Testing user input (e.g., 67387897732)
-        if (/^\d{11}$/.test(bvn)) {
-            return {
-                bvn,
-                firstName: "Demo",
-                lastName: "User",
-                dob: "1990-01-01",
-                phone: "08000000000",
-                gender: 'Male',
-                status: 'VERIFIED'
-            };
-        }
-
-        throw new Error("BVN Not Found in NIBSS ledger");
+        return {
+            bvn,
+            firstName,
+            lastName,
+            dob: "1990-01-01", // Simulated - real API would return actual DOB
+            phone: "08000000000", // Simulated
+            gender: 'Male',
+            status: 'VERIFIED'
+        };
     }
 }
 

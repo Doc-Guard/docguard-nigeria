@@ -38,7 +38,7 @@ const Login: React.FC = () => {
                 </div>
 
                 <p className="text-center mt-8 text-white/40 text-[10px] font-black uppercase tracking-[0.3em]">
-                    DocGuard Nigeria v0.8.0 • Built for Nigerian Banks
+                    DocGuard Nigeria v0.9.0 • Built for Nigerian Banks
                 </p>
             </div>
         </div>

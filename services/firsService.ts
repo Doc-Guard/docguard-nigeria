@@ -8,6 +8,10 @@ export interface TaxEntity {
     email: string;
 }
 
+export interface FIRSValidationContext {
+    entityName?: string; // Company name from linked loan
+}
+
 class FIRSService {
     private static instance: FIRSService;
 
@@ -22,43 +26,30 @@ class FIRSService {
 
     /**
      * Validates a Tax Identification Number (TIN - Corporate or Individual)
+     * NOTE: This is a simulation. In production, integrate with real FIRS API.
+     * @param tin - The TIN to validate (10-12 digits)
+     * @param context - Optional context containing entity information from linked loan
      */
-    public async validateTIN(tin: string): Promise<TaxEntity> {
+    public async validateTIN(tin: string, context?: FIRSValidationContext): Promise<TaxEntity> {
         // Simulate API latency
         await new Promise(r => setTimeout(r, 1200));
 
-        if (tin === '1000234567') {
-            return {
-                tin,
-                taxpayerName: "DANGOTE INDUSTRIES LIMITED",
-                taxOffice: "MSTO IKOYI",
-                activeStatus: "Active",
-                email: "tax@dangote.com"
-            };
+        // Validate TIN format
+        if (!/^\d{10,12}$/.test(tin)) {
+            throw new Error("Invalid TIN format. Must be 10-12 digits.");
         }
 
-        if (tin === '2000555666') {
-            return {
-                tin,
-                taxpayerName: "LMA NIGERIA DEMO LTD",
-                taxOffice: "MSTO VI",
-                activeStatus: "Active",
-                email: "finance@lmademo.ng"
-            };
-        }
+        // In production, this would call the actual FIRS API
+        // For simulation, we accept any valid format and return the entity context name
+        const taxpayerName = context?.entityName || `Taxpayer ${tin}`;
 
-        // Allow any 10-12 digit TIN for Demo/Testing
-        if (/^\d{10,12}$/.test(tin)) {
-            return {
-                tin,
-                taxpayerName: "DEMO TAXPAYER LTD",
-                taxOffice: "MSTO LAGOS CENTRAL",
-                activeStatus: "Active",
-                email: "demo@tax.gov.ng"
-            };
-        }
-
-        throw new Error("TIN Not Found or Inactive");
+        return {
+            tin,
+            taxpayerName: taxpayerName.toUpperCase(),
+            taxOffice: "MSTO LAGOS", // Simulated
+            activeStatus: "Active",
+            email: "tax@entity.ng" // Simulated
+        };
     }
 }
 
