@@ -13,10 +13,10 @@ interface ImpactMetricsProps {
 
 const ImpactMetrics: React.FC<ImpactMetricsProps> = ({ metrics }) => {
     const data = [
-        { val: metrics?.riskMitigated || '₦0.00', label: 'Lender Risk Mitigated' },
-        { val: metrics?.costReduction || '0%', label: 'Cycle Cost Reduction' },
-        { val: metrics?.hoursSaved || '0', label: 'Human Hours Saved' },
-        { val: metrics?.penalties || '0.00', label: 'Filing Penalties' }
+        { val: metrics?.riskMitigated || '₦0.00', label: 'Portfolio Value Secured' },
+        { val: metrics?.costReduction || '0%', label: 'Operational Efficiency Gain' },
+        { val: metrics?.hoursSaved || '0', label: 'Person-Hours Saved' },
+        { val: metrics?.penalties || '₦0', label: 'Penalties Avoided (CAMA)' }
     ];
 
     return (
