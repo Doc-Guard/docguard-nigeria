@@ -1,4 +1,4 @@
-```
+
 import React from 'react';
 import { Settings, User, Shield, Bell, Database, Key, Activity } from 'lucide-react';
 
@@ -26,11 +26,10 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, setActiveT
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`w - full flex items - center gap - 3 px - 4 py - 3 rounded - xl transition - all text - left ${
-    activeTab === tab.id
-    ? 'bg-[#008751] text-white shadow-lg shadow-emerald-900/20'
-    : 'text-emerald-950 hover:bg-emerald-50'
-} `}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left ${activeTab === tab.id
+                                ? 'bg-[#008751] text-white shadow-lg shadow-emerald-900/20'
+                                : 'text-emerald-950 hover:bg-emerald-50'
+                            }`}
                     >
                         <Icon size={18} />
                         <span className="text-xs font-black uppercase tracking-wide">{tab.label}</span>
@@ -42,4 +41,3 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ activeTab, setActiveT
 };
 
 export default SettingsSidebar;
-```
