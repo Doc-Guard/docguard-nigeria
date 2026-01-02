@@ -23,7 +23,7 @@ SELECT
     f.entity_name,
     'Filing Submitted: ' || COALESCE(f.filing_type, 'CAC Filing') as description,
     f.status as metadata,
-    COALESCE(f.submission_date, f.created_at) as event_timestamp,
+    COALESCE(f.submission_date, f.updated_at) as event_timestamp,
     f.user_id
 FROM filings f
 
