@@ -159,7 +159,7 @@ SELECT
     'filing_submitted' as event_type,
     f.id::text as event_id,
     f.entity_name,
-    'Filing Submitted: ' || COALESCE(f.charge_type, 'CAC Filing') as description,
+    'Filing Submitted: ' || COALESCE(f.filing_type, 'CAC Filing') as description,
     f.status as metadata,
     COALESCE(f.submission_date, f.created_at) as event_timestamp,
     f.user_id
