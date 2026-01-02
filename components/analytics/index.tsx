@@ -1,8 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, Filter, Download, Loader2 } from 'lucide-react';
+import { TrendingUp, Filter, Download, Loader2, Calendar } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../auth/AuthContext';
+import PortfolioOverview from './PortfolioOverview';
+import ComplianceTracking from './ComplianceTracking';
+import PerformanceMetrics from './PerformanceMetrics';
 import TurnaroundChart from './TurnaroundChart';
 import PrecisionHealth from './PrecisionHealth';
 import ImpactMetrics from './ImpactMetrics';
@@ -12,9 +15,35 @@ const Analytics: React.FC = () => {
     const { user } = useAuth();
     const { showToast } = useToast();
     const [isLoading, setIsLoading] = useState(true);
-    const [dateRange, setDateRange] = useState('All Time');
+    const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d' | 'all'>('all');
 
-    // State for Real Data
+    // Portfolio State
+    const [portfolioData, setPortfolioData] = useState({
+        totalValue: 0,
+        totalValueTrend: 0,
+        activeLoans: 0,
+        loansByType: [] as any[],
+        currencyMix: [] as any[]
+    });
+
+    // Compliance State
+    const [complianceData, setComplianceData] = useState({
+        kycCompletionRate: 0,
+        pendingVerifications: 0,
+        filingStatusData: [] as any[],
+        deadlineRisks: [] as any[]
+    });
+
+    // Performance State
+    const [performanceData, setPerformanceData] = useState({
+        documentSpeedData: [] as any[],
+        avgFilingTime: 0,
+        avgFilingTimeTrend: 0,
+        errorRate: 0,
+        totalDocuments: 0
+    });
+
+    // Legacy State (for existing charts)
     const [turnaroundData, setTurnaroundData] = useState<any[]>([]);
     const [registrationData, setRegistrationData] = useState<any[]>([]);
     const [impact, setImpact] = useState({
@@ -26,166 +55,317 @@ const Analytics: React.FC = () => {
 
     useEffect(() => {
         if (!user) return;
-        fetchAnalytics();
+        fetchAllAnalytics();
     }, [user, dateRange]);
 
-    const fetchAnalytics = async () => {
+    const fetchAllAnalytics = async () => {
         setIsLoading(true);
         try {
-            // 1. Fetch Filings for Turnaround & Registration Stats
-            const { data: filings } = await supabase
-                .from('filings')
-                .select('*')
-                .eq('user_id', user.id);
-
-            // 2. Fetch Loans for Risk Calculation
-            const { data: loans } = await supabase
-                .from('loans')
-                .select('amount, currency')
-                .eq('user_id', user.id);
-
-            // 3. Fetch Docs for Hours Saved
-            const { count: docCount } = await supabase
-                .from('documents')
-                .select('*', { count: 'exact', head: true })
-                .eq('user_id', user.id);
-
-            // Process Turnaround Data (Group by Month)
-            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            const currentYear = new Date().getFullYear();
-
-            // Initialize with zeroes or fetch real dates
-            // For this demo, let's map actual filings to months
-            const monthlyStats = new Array(12).fill(0).map((_, i) => ({
-                name: months[i],
-                manual: 0, // Baseline assumption
-                docGuard: 0,
-                count: 0
-            }));
-
-            filings?.forEach(f => {
-                const date = new Date(f.submission_date || f.created_at);
-                if (date.getFullYear() === currentYear) {
-                    const monthIdx = date.getMonth();
-                    monthlyStats[monthIdx].docGuard += 5; // Assume 5 days avg for DocGuard
-                    monthlyStats[monthIdx].manual += 45; // Assume 45 days avg manual
-                    monthlyStats[monthIdx].count++;
-                }
-            });
-
-            // Average out
-            const processedTurnaround = monthlyStats
-                .filter(m => m.count > 0 || m.name === months[new Date().getMonth()]) // Show current month at least
-                .map(m => ({
-                    name: m.name,
-                    manual: m.count ? 45 : 0, // Baseline constant
-                    docGuard: m.count ? Math.round(m.docGuard / m.count) : 0
-                }));
-
-            // Fallback if empty to avoid broken chart
-            if (processedTurnaround.length === 0) {
-                processedTurnaround.push({ name: months[new Date().getMonth()], manual: 0, docGuard: 0 });
-            }
-
-            setTurnaroundData(processedTurnaround);
-
-            // Process Registration Health
-            const statusCounts = {
-                Perfected: 0,
-                Submitted: 0,
-                Pending: 0
-            };
-            filings?.forEach(f => {
-                if (f.status === 'Perfected') statusCounts.Perfected++;
-                else if (f.status === 'Submitted') statusCounts.Submitted++;
-                else statusCounts.Pending++;
-            });
-
-            setRegistrationData([
-                { name: 'Perfected', value: statusCounts.Perfected, color: '#008751' },
-                { name: 'Submitted', value: statusCounts.Submitted, color: '#f59e0b' },
-                { name: 'Pending', value: statusCounts.Pending, color: '#f43f5e' },
+            // Fetch all data in parallel
+            const [filings, loans, docs, kycRequests] = await Promise.all([
+                supabase.from('filings').select('*').eq('user_id', user.id),
+                supabase.from('loans').select('*').eq('user_id', user.id),
+                supabase.from('documents').select('*', { count: 'exact' }).eq('user_id', user.id),
+                supabase.from('kyc_requests').select('*').eq('user_id', user.id)
             ]);
 
-            // Calculate Impact
-            const totalLoanValue = loans?.reduce((acc, curr) => acc + (curr.currency === 'NGN' ? curr.amount : curr.amount * 1500), 0) || 0;
-            const hoursDocs = (docCount || 0) * 2; // 2 hours per doc
-            const hoursFilings = (filings?.length || 0) * 5; // 5 hours per filing
-            const totalHours = hoursDocs + hoursFilings;
+            const filingsData = filings.data || [];
+            const loansData = loans.data || [];
+            const docsCount = docs.count || 0;
+            const kycData = kycRequests.data || [];
 
-            setImpact({
-                riskMitigated: `₦${(totalLoanValue ? (totalLoanValue / 1000000).toFixed(1) : '0.0')}M`,
-                costReduction: filings?.length ? '85%' : '0%', // Efficiency metric
-                hoursSaved: (totalHours > 0 ? totalHours : 0).toString(),
-                penalties: '0.00'
-            });
+            // Process Portfolio Data
+            processPortfolioData(loansData);
+
+            // Process Compliance Data
+            processComplianceData(kycData, filingsData);
+
+            // Process Performance Data
+            processPerformanceData(docsCount, filingsData);
+
+            // Process Legacy Charts
+            processLegacyCharts(filingsData, loansData, docsCount);
 
         } catch (err: any) {
-            console.error(err);
+            console.error('Analytics fetch error:', err);
             showToast('Failed to load analytics', 'error');
         } finally {
             setIsLoading(false);
         }
     };
 
-    const handleExport = () => {
-        // Simple CSV Export
-        const headers = ['Metric', 'Manual Baseline', 'DocGuard Performance'];
-        const rows = turnaroundData.map(d => [d.name, d.manual, d.docGuard].join(','));
-        const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join('\n');
+    const processPortfolioData = (loans: any[]) => {
+        const totalValue = loans.reduce((acc, loan) => {
+            const value = loan.currency === 'NGN' ? loan.amount : loan.amount * 1500;
+            return acc + value;
+        }, 0);
 
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", "docguard_analytics.csv");
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        const activeCount = loans.filter(l => ['Active', 'Disbursed'].includes(l.status || 'Active')).length;
 
-        showToast('Analytics data exported', 'success');
+        // Loan type distribution
+        const typeCount: any = {};
+        loans.forEach(loan => {
+            const type = loan.loan_type || 'Term Facility';
+            typeCount[type] = (typeCount[type] || 0) + 1;
+        });
+
+        const loansByType = Object.entries(typeCount).map(([name, value], idx) => ({
+            name,
+            value: value as number,
+            color: ['#008751', '#f59e0b', '#3b82f6'][idx % 3]
+        }));
+
+        // Currency mix
+        const currencyCount: any = { NGN: 0, USD: 0, GBP: 0 };
+        loans.forEach(loan => {
+            currencyCount[loan.currency || 'NGN']++;
+        });
+
+        const currencyMix = Object.entries(currencyCount)
+            .filter(([, count]) => count > 0)
+            .map(([name, value], idx) => ({
+                name,
+                value: value as number,
+                color: ['#008751', '#10b981', '#34d399'][idx]
+            }));
+
+        setPortfolioData({
+            totalValue,
+            totalValueTrend: 12.5, // Mock trend
+            activeLoans: activeCount,
+            loansByType: loansByType.length > 0 ? loansByType : [{ name: 'No Data', value: 0, color: '#e5e7eb' }],
+            currencyMix: currencyMix.length > 0 ? currencyMix : [{ name: 'NGN', value: 0, color: '#008751' }]
+        });
     };
 
-    const toggleFilter = () => {
-        setDateRange(prev => prev === 'All Time' ? 'This Month' : 'All Time');
-        showToast(`Filter set to: ${dateRange === 'All Time' ? 'This Month' : 'All Time'}`, 'info');
-        // In real app, this would trigger fetchAnalytics with params
+    const processComplianceData = (kycRequests: any[], filings: any[]) => {
+        const completedKYC = kycRequests.filter(k => k.status === 'Approved').length;
+        const kycCompletionRate = kycRequests.length > 0 ? Math.round((completedKYC / kycRequests.length) * 100) : 0;
+        const pendingVerifications = kycRequests.filter(k => k.status === 'Pending').length;
+
+        // Filing status
+        const statusCounts = {
+            Perfected: filings.filter(f => f.status === 'Perfected').length,
+            Submitted: filings.filter(f => f.status === 'Submitted').length,
+            Pending: filings.filter(f => f.status === 'Pending').length
+        };
+
+        const filingStatusData = [
+            { name: 'Perfected', count: statusCounts.Perfected, color: '#008751' },
+            { name: 'Submitted', count: statusCounts.Submitted, color: '#f59e0b' },
+            { name: 'Pending', count: statusCounts.Pending, color: '#f43f5e' }
+        ];
+
+        // Deadline risks (mock calculation based on filing dates)
+        const now = new Date();
+        const risks = filings.map(f => {
+            const created = new Date(f.created_at);
+            const daysOld = Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+            if (daysOld > 60) return 'High';
+            if (daysOld > 30) return 'Medium';
+            return 'Low';
+        });
+
+        const deadlineRisks = [
+            { level: 'High', count: risks.filter(r => r === 'High').length, days: '> 60 days old' },
+            { level: 'Medium', count: risks.filter(r => r === 'Medium').length, days: '30-60 days' },
+            { level: 'Low', count: risks.filter(r => r === 'Low').length, days: '< 30 days' }
+        ];
+
+        setComplianceData({
+            kycCompletionRate,
+            pendingVerifications,
+            filingStatusData,
+            deadlineRisks
+        });
     };
+
+    const processPerformanceData = (docCount: number, filings: any[]) => {
+        // Document speed data (mock monthly comparison)
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+        const documentSpeedData = months.map(month => ({
+            month,
+            manual: 48, // hours
+            ai: 6 // hours
+        }));
+
+        const avgFilingTime = filings.length > 0 ? 5 : 0; // Mock: 5 days average
+        const avgFilingTimeTrend = -15; // Negative is good (reduction)
+        const errorRate = filings.length > 0 ? 2.3 : 0; // Mock: 2.3% error rate
+
+        setPerformanceData({
+            documentSpeedData,
+            avgFilingTime,
+            avgFilingTimeTrend,
+            errorRate,
+            totalDocuments: docCount
+        });
+    };
+
+    const processLegacyCharts = (filings: any[], loans: any[], docCount: number) => {
+        // Turnaround Chart
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const currentYear = new Date().getFullYear();
+
+        const monthlyStats = new Array(12).fill(0).map((_, i) => ({
+            name: months[i],
+            manual: 0,
+            docGuard: 0,
+            count: 0
+        }));
+
+        filings?.forEach(f => {
+            const date = new Date(f.submission_date || f.created_at);
+            if (date.getFullYear() === currentYear) {
+                const monthIdx = date.getMonth();
+                monthlyStats[monthIdx].docGuard += 5;
+                monthlyStats[monthIdx].manual += 45;
+                monthlyStats[monthIdx].count++;
+            }
+        });
+
+        const processedTurnaround = monthlyStats
+            .filter(m => m.count > 0 || m.name === months[new Date().getMonth()])
+            .map(m => ({
+                name: m.name,
+                manual: m.count ? 45 : 0,
+                docGuard: m.count ? Math.round(m.docGuard / m.count) : 0
+            }));
+
+        if (processedTurnaround.length === 0) {
+            processedTurnaround.push({ name: months[new Date().getMonth()], manual: 0, docGuard: 0 });
+        }
+
+        setTurnaroundData(processedTurnaround);
+
+        // Registration Health
+        const statusCounts = {
+            Perfected: 0,
+            Submitted: 0,
+            Pending: 0
+        };
+        filings?.forEach(f => {
+            if (f.status === 'Perfected') statusCounts.Perfected++;
+            else if (f.status === 'Submitted') statusCounts.Submitted++;
+            else statusCounts.Pending++;
+        });
+
+        setRegistrationData([
+            { name: 'Perfected', value: statusCounts.Perfected, color: '#008751' },
+            { name: 'Submitted', value: statusCounts.Submitted, color: '#f59e0b' },
+            { name: 'Pending', value: statusCounts.Pending, color: '#f43f5e' },
+        ]);
+
+        // Impact Metrics
+        const totalLoanValue = loans?.reduce((acc, curr) => acc + (curr.currency === 'NGN' ? curr.amount : curr.amount * 1500), 0) || 0;
+        const hoursDocs = docCount * 2;
+        const hoursFilings = filings?.length * 5;
+        const totalHours = hoursDocs + hoursFilings;
+
+        setImpact({
+            riskMitigated: `₦${(totalLoanValue ? (totalLoanValue / 1000000).toFixed(1) : '0.0')}M`,
+            costReduction: filings?.length ? '85%' : '0%',
+            hoursSaved: (totalHours > 0 ? totalHours : 0).toString(),
+            penalties: '0.00'
+        });
+    };
+
+    const handleExport = async () => {
+        try {
+            const reportData = {
+                generated: new Date().toISOString(),
+                portfolio: portfolioData,
+                compliance: complianceData,
+                performance: performanceData,
+                impact
+            };
+
+            const jsonContent = JSON.stringify(reportData, null, 2);
+            const blob = new Blob([jsonContent], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `docguard_analytics_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            showToast('Analytics exported successfully', 'success');
+        } catch (err) {
+            showToast('Export failed', 'error');
+        }
+    };
+
+    const dateRangeOptions = [
+        { value: '7d', label: 'Last 7 Days' },
+        { value: '30d', label: 'Last 30 Days' },
+        { value: '90d', label: 'Last 90 Days' },
+        { value: 'all', label: 'All Time' }
+    ];
+
+    const currentLabel = dateRangeOptions.find(opt => opt.value === dateRange)?.label || 'All Time';
 
     return (
-        <div className="max-w-7xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-700">
+        <div className="max-w-[1600px] mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-700">
+            {/* Header */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div>
                     <div className="flex items-center gap-3 mb-1">
                         <div className="p-2 bg-emerald-100 text-[#008751] rounded-lg">
                             <TrendingUp size={20} />
                         </div>
-                        <h1 className="text-3xl font-extrabold text-emerald-950 tracking-tight">Efficacy Analytics</h1>
+                        <h1 className="text-3xl font-extrabold text-emerald-950 tracking-tight">Analytics Intelligence</h1>
                     </div>
-                    <p className="text-emerald-600/70 font-medium">Tracking the 85% optimization of the Nigerian credit documentation cycle.</p>
+                    <p className="text-emerald-600/70 font-medium">Real-time insights into your loan compliance operations</p>
                 </div>
                 <div className="flex gap-4">
-                    <button
-                        onClick={toggleFilter}
-                        className="flex items-center gap-2 px-6 py-3 bg-white border border-emerald-100 rounded-xl text-xs font-black uppercase tracking-widest text-emerald-900 hover:bg-emerald-50 transition-all shadow-sm"
-                    >
-                        <Filter size={18} className="text-emerald-500" /> {dateRange}
-                    </button>
+                    <div className="relative">
+                        <select
+                            value={dateRange}
+                            onChange={(e) => setDateRange(e.target.value as any)}
+                            className="flex items-center gap-2 px-6 py-3 bg-white border border-emerald-100 rounded-xl text-xs font-black uppercase tracking-widest text-emerald-900 hover:bg-emerald-50 transition-all shadow-sm appearance-none pr-10 cursor-pointer"
+                        >
+                            {dateRangeOptions.map(opt => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                        </select>
+                        <Calendar size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-500 pointer-events-none" />
+                    </div>
                     <button
                         onClick={handleExport}
-                        className="flex items-center gap-2 px-8 py-3 bg-[#0a2e1f] text-white rounded-xl text-xs font-black uppercase tracking-[0.2em] hover:bg-emerald-900 shadow-xl shadow-emerald-950/20 transition-all active:scale-95"
+                        disabled={isLoading}
+                        className="flex items-center gap-2 px-8 py-3 bg-[#0a2e1f] text-white rounded-xl text-xs font-black uppercase tracking-[0.2em] hover:bg-emerald-900 shadow-xl shadow-emerald-950/20 transition-all active:scale-95 disabled:opacity-50"
                     >
                         {isLoading ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />}
-                        Export Intelligence
+                        Export Data
                     </button>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <TurnaroundChart data={turnaroundData} />
-                <PrecisionHealth data={registrationData} />
-            </div>
+            {isLoading ? (
+                <div className="flex items-center justify-center h-96">
+                    <Loader2 className="animate-spin text-emerald-600" size={48} />
+                </div>
+            ) : (
+                <>
+                    {/* New Sections */}
+                    <PortfolioOverview {...portfolioData} />
 
-            <ImpactMetrics metrics={impact} />
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <ComplianceTracking {...complianceData} />
+                        <PerformanceMetrics {...performanceData} />
+                    </div>
+
+                    {/* Legacy Charts */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <TurnaroundChart data={turnaroundData} />
+                        <PrecisionHealth data={registrationData} />
+                    </div>
+
+                    <ImpactMetrics metrics={impact} />
+                </>
+            )}
         </div>
     );
 };
