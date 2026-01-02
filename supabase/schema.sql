@@ -99,12 +99,22 @@ create table kyc_requests (
   user_id uuid references auth.users not null,
   loan_id uuid references loans(id), -- Link to Loan
   entity_name text,
-  verification_type text, -- Identity, Document, Liveness
+  verification_type text, -- BVN, CAC_RC, FIRS_TIN, Document, Liveness
+  identifier text, -- The actual BVN/RC/TIN value (unique per verification_type when verified)
   status text default 'Pending',
   risk_score numeric,
   details jsonb,
   created_at timestamp with time zone default timezone('utc'::text, now())
 );
+
+-- Unique index: Each identifier can only be verified once per type
+CREATE UNIQUE INDEX kyc_unique_verified_identifier 
+ON kyc_requests (verification_type, identifier) 
+WHERE status = 'Verified';
+
+-- Index for faster lookups
+CREATE INDEX kyc_identifier_lookup 
+ON kyc_requests (identifier, status);
 
 -- Enable RLS for KYC
 alter table kyc_requests enable row level security;

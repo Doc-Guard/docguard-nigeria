@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { Building2, Search, CheckCircle, AlertCircle, FileCheck } from 'lucide-react';
+import { Building2, Search, CheckCircle, AlertCircle, FileCheck, ShieldCheck } from 'lucide-react';
 import { cacService } from '../../services/cacService';
 import { firsService } from '../../services/firsService';
+import { saveVerification, checkExistingVerification } from '../../services/kycPersistence';
 
 interface CorporateVerificationProps {
     onComplete: (data: any) => void;
@@ -10,15 +11,19 @@ interface CorporateVerificationProps {
         rcNumber?: string;
         tin?: string;
     };
+    loanId?: string;
+    entityName?: string; // Borrower/Company name from linked loan
 }
 
-const CorporateVerification: React.FC<CorporateVerificationProps> = ({ onComplete, prefillData }) => {
+const CorporateVerification: React.FC<CorporateVerificationProps> = ({ onComplete, prefillData, loanId, entityName }) => {
     const [rcNumber, setRcNumber] = useState(prefillData?.rcNumber || '');
     const [tin, setTin] = useState(prefillData?.tin || '');
     const [isVerifying, setIsVerifying] = useState(false);
     const [cacData, setCacData] = useState<any>(null);
     const [firsData, setFirsData] = useState<any>(null);
     const [error, setError] = useState('');
+    const [existingRc, setExistingRc] = useState<any>(null);
+    const [existingTin, setExistingTin] = useState<any>(null);
 
     useEffect(() => {
         if (prefillData) {
@@ -27,23 +32,91 @@ const CorporateVerification: React.FC<CorporateVerificationProps> = ({ onComplet
         }
     }, [prefillData]);
 
+    // Check for existing verifications
+    useEffect(() => {
+        const checkExisting = async () => {
+            if (rcNumber.length >= 5) {
+                const rc = await checkExistingVerification('CAC_RC', rcNumber);
+                setExistingRc(rc.exists ? rc.record : null);
+            } else {
+                setExistingRc(null);
+            }
+        };
+        checkExisting();
+    }, [rcNumber]);
+
+    useEffect(() => {
+        const checkExistingTin = async () => {
+            if (tin.length >= 8) {
+                const t = await checkExistingVerification('FIRS_TIN', tin);
+                setExistingTin(t.exists ? t.record : null);
+            } else {
+                setExistingTin(null);
+            }
+        };
+        checkExistingTin();
+    }, [tin]);
+
     const handleVerifySync = async () => {
+        // Block if identifiers already verified to different entities
+        if (existingRc) {
+            setError(`This RC Number is already registered to: ${existingRc.entity_name}`);
+            return;
+        }
+        if (existingTin) {
+            setError(`This TIN is already registered to: ${existingTin.entity_name}`);
+            return;
+        }
+
         setIsVerifying(true);
         setError('');
         try {
-            // Parallel execution of independent checks
+            // Parallel execution of independent checks - pass entity context
             const [cacResult, firsResult] = await Promise.all([
-                rcNumber ? cacService.searchCompany(rcNumber) : Promise.resolve(null),
-                tin ? firsService.validateTIN(tin) : Promise.resolve(null)
+                rcNumber ? cacService.searchCompany(rcNumber, { entityName }) : Promise.resolve(null),
+                tin ? firsService.validateTIN(tin, { entityName }) : Promise.resolve(null)
             ]);
 
             setCacData(cacResult);
             setFirsData(firsResult);
 
-            setIsVerifying(false);
-
-            // If both (or provided ones) are valid, complete step
+            // If both (or provided ones) are valid, save and complete step
             if (cacResult?.status === 'ACTIVE' && (tin ? firsResult?.activeStatus === 'Active' : true)) {
+                // Save RC verification
+                if (cacResult) {
+                    const rcSave = await saveVerification({
+                        verificationType: 'CAC_RC',
+                        entityName: cacResult.companyName,
+                        identifier: rcNumber,
+                        status: 'Verified',
+                        details: cacResult,
+                        loanId
+                    });
+                    if (!rcSave.success) {
+                        setIsVerifying(false);
+                        setError(rcSave.error || 'Failed to save RC verification');
+                        return;
+                    }
+                }
+
+                // Save TIN verification
+                if (firsResult) {
+                    const tinSave = await saveVerification({
+                        verificationType: 'FIRS_TIN',
+                        entityName: cacResult?.companyName || 'Unknown Entity',
+                        identifier: tin,
+                        status: 'Verified',
+                        details: firsResult,
+                        loanId
+                    });
+                    if (!tinSave.success) {
+                        setIsVerifying(false);
+                        setError(tinSave.error || 'Failed to save TIN verification');
+                        return;
+                    }
+                }
+
+                setIsVerifying(false);
                 onComplete({
                     corporate: {
                         companyName: cacResult.companyName,
@@ -54,6 +127,7 @@ const CorporateVerification: React.FC<CorporateVerificationProps> = ({ onComplet
                     }
                 });
             } else {
+                setIsVerifying(false);
                 setError("Entity is not in good standing with one or more agencies.");
             }
 
@@ -105,6 +179,24 @@ const CorporateVerification: React.FC<CorporateVerificationProps> = ({ onComplet
                 </div>
 
                 {error && <p className="text-rose-500 text-xs font-bold flex items-center gap-1"><AlertCircle size={12} /> {error}</p>}
+
+                {/* Existing verification badges */}
+                {existingRc && !error && (
+                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2">
+                        <ShieldCheck size={16} className="text-emerald-600" />
+                        <p className="text-xs font-bold text-emerald-700">
+                            RC Previously verified: {existingRc.entity_name}
+                        </p>
+                    </div>
+                )}
+                {existingTin && !error && (
+                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2">
+                        <ShieldCheck size={16} className="text-emerald-600" />
+                        <p className="text-xs font-bold text-emerald-700">
+                            TIN Previously verified: {existingTin.entity_name}
+                        </p>
+                    </div>
+                )}
 
                 {/* Results Display */}
                 {cacData && (

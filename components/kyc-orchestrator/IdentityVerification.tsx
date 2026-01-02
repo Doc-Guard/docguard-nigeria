@@ -1,40 +1,87 @@
 
 import React, { useState } from 'react';
-import { Search, CheckCircle, AlertCircle, Fingerprint } from 'lucide-react';
+import { Search, CheckCircle, AlertCircle, Fingerprint, ShieldCheck } from 'lucide-react';
+import { saveVerification, checkExistingVerification } from '../../services/kycPersistence';
 
 interface IdentityVerificationProps {
     onComplete: (data: any) => void;
     prefillData?: { bvn?: string };
+    loanId?: string;
+    entityName?: string; // Borrower name from linked loan
 }
 
-const IdentityVerification: React.FC<IdentityVerificationProps> = ({ onComplete, prefillData }) => {
+const IdentityVerification: React.FC<IdentityVerificationProps> = ({ onComplete, prefillData, loanId, entityName }) => {
     const [bvn, setBvn] = useState(prefillData?.bvn || '');
     const [isVerifying, setIsVerifying] = useState(false);
     const [error, setError] = useState('');
+    const [alreadyVerified, setAlreadyVerified] = useState<any>(null);
 
     React.useEffect(() => {
         if (prefillData?.bvn) setBvn(prefillData.bvn);
     }, [prefillData]);
+
+    // Check if BVN is already verified when it changes
+    React.useEffect(() => {
+        const checkBvn = async () => {
+            if (bvn.length === 11) {
+                const existing = await checkExistingVerification('BVN', bvn);
+                if (existing.exists) {
+                    setAlreadyVerified(existing.record);
+                } else {
+                    setAlreadyVerified(null);
+                }
+            } else {
+                setAlreadyVerified(null);
+            }
+        };
+        checkBvn();
+    }, [bvn]);
 
     const handleVerify = async () => {
         if (bvn.length !== 11) {
             setError('BVN must be 11 digits');
             return;
         }
+
+        // Block if already verified
+        if (alreadyVerified) {
+            setError(`This BVN is already registered to: ${alreadyVerified.entity_name}`);
+            return;
+        }
+
         setIsVerifying(true);
         setError('');
 
-
-        // Call NIBSS Service
+        // Call NIBSS Service with entity context
         try {
-            const result = await import('../../services/nibssService').then(m => m.nibssService.validateBVN(bvn));
+            const result = await import('../../services/nibssService').then(m =>
+                m.nibssService.validateBVN(bvn, { entityName })
+            );
+
+            // Save verification to database
+            const saveResult = await saveVerification({
+                verificationType: 'BVN',
+                entityName: `${result.firstName} ${result.lastName}`,
+                identifier: bvn,
+                status: 'Verified',
+                details: result,
+                loanId
+            });
+
+            if (!saveResult.success) {
+                setIsVerifying(false);
+                setError(saveResult.error || 'Failed to save verification');
+                return;
+            }
+
             setIsVerifying(false);
             onComplete({
                 bvn: result.bvn,
                 firstName: result.firstName,
                 lastName: result.lastName,
                 dob: result.dob,
-                photoResult: 'MATCH'
+                photoResult: 'MATCH',
+                verificationId: saveResult.data?.id
             });
         } catch (err: any) {
             setIsVerifying(false);
@@ -71,6 +118,14 @@ const IdentityVerification: React.FC<IdentityVerificationProps> = ({ onComplete,
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-400" size={20} />
                     </div>
                     {error && <p className="text-rose-500 text-xs font-bold mt-2 flex items-center gap-1"><AlertCircle size={12} /> {error}</p>}
+                    {alreadyVerified && !error && (
+                        <div className="mt-2 p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2">
+                            <ShieldCheck size={16} className="text-emerald-600" />
+                            <p className="text-xs font-bold text-emerald-700">
+                                Previously verified: {alreadyVerified.entity_name}
+                            </p>
+                        </div>
+                    )}
                 </div>
 
                 <button

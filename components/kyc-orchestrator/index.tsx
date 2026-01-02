@@ -131,12 +131,16 @@ const KYCOrchestrator: React.FC = () => {
             <div className="min-h-[400px]">
                 {step === 1 && <IdentityVerification
                     onComplete={handleStepComplete}
+                    loanId={loanContext?.id}
+                    entityName={loanContext?.borrower_name}
                     prefillData={loanContext ? {
                         bvn: loanContext.bvn || loanContext.tracking_data?.bvn
                     } : undefined}
                 />}
                 {step === 2 && <CorporateVerification
                     onComplete={handleStepComplete}
+                    loanId={loanContext?.id}
+                    entityName={loanContext?.borrower_name}
                     prefillData={loanContext ? {
                         rcNumber: loanContext.rc_number || loanContext.tracking_data?.rc_number,
                         tin: loanContext.tin || loanContext.tracking_data?.tin
