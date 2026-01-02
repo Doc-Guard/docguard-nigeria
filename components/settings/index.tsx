@@ -7,6 +7,7 @@ import SecuritySettings from './SecuritySettings';
 import NotificationSettings from './NotificationSettings';
 import DatabaseSettings from './DatabaseSettings';
 import ApiKeysSettings from './ApiKeysSettings';
+import SystemStatus from './SystemStatus';
 
 const Settings: React.FC = () => {
     const [activeTab, setActiveTab] = useState('general');
@@ -19,6 +20,7 @@ const Settings: React.FC = () => {
             case 'notifications': return <NotificationSettings />;
             case 'database': return <DatabaseSettings />;
             case 'apikeys': return <ApiKeysSettings />;
+            case 'system': return <SystemStatus />;
             default: return <GeneralSettings />;
         }
     };
