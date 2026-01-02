@@ -220,6 +220,50 @@ GRANT SELECT ON activity_feed TO authenticated;
 -- Documentation
 COMMENT ON VIEW activity_feed IS 'Unified activity feed showing recent events across loans, filings, documents, and KYC requests. Used by Dashboard component.';
 
+------------------------------------------------------------
+-- T_NOTIFICATIONS: In-app notification center
+------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS notifications (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    type TEXT NOT NULL DEFAULT 'info' CHECK (type IN ('success', 'warning', 'error', 'info')),
+    category TEXT NOT NULL DEFAULT 'system' CHECK (category IN ('kyc', 'filing', 'document', 'loan', 'deadline', 'system')),
+    reference_id UUID,  -- Optional link to related entity (loan_id, filing_id, etc.)
+    reference_type TEXT, -- 'loan', 'filing', 'document', 'kyc'
+    read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for efficient queries
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(user_id, read);
+
+-- Enable RLS
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own notifications"
+    ON notifications FOR SELECT
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own notifications"
+    ON notifications FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own notifications"
+    ON notifications FOR UPDATE
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own notifications"
+    ON notifications FOR DELETE
+    USING (auth.uid() = user_id);
+
+-- Enable realtime
+ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
+
+COMMENT ON TABLE notifications IS 'In-app notification center for DocGuard Nigeria';
 
 -- TRIGGER: Auto-create profile on signup
 create or replace function public.handle_new_user() 

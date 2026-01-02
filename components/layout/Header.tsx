@@ -1,9 +1,9 @@
 
 import React, { useState } from 'react';
-import { Search, Bell } from 'lucide-react';
+import { Search } from 'lucide-react';
 import UserAvatar from '../common/UserAvatar';
 import UserProfileMenu from './UserProfileMenu';
-import NotificationPanel from './NotificationPanel';
+import NotificationCenter from '../notifications/NotificationCenter';
 
 interface HeaderProps {
     userEmail: string;
@@ -18,11 +18,9 @@ const Header: React.FC<HeaderProps> = ({
     userProfilePic,
     onLogout = () => { }
 }) => {
-    const [showNotifications, setShowNotifications] = useState(false);
     const [showProfileMenu, setShowProfileMenu] = useState(false);
 
     const displayName = userName || userEmail.split('@')[0];
-    const hasUnreadNotifications = true; // TODO: Connect to real notification state
 
     return (
         <header className="h-20 bg-white/80 backdrop-blur-md border-b border-emerald-100 flex items-center justify-between px-10 z-20 sticky top-0">
@@ -36,23 +34,8 @@ const Header: React.FC<HeaderProps> = ({
             </div>
 
             <div className="flex items-center gap-6">
-                {/* Notifications */}
-                <div className="relative">
-                    <button
-                        onClick={() => setShowNotifications(!showNotifications)}
-                        className="relative p-2.5 text-emerald-900/60 hover:bg-emerald-50 rounded-xl transition-all hover:scale-105 active:scale-95"
-                    >
-                        <Bell size={20} />
-                        {hasUnreadNotifications && (
-                            <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
-                        )}
-                    </button>
-
-                    <NotificationPanel
-                        isOpen={showNotifications}
-                        onClose={() => setShowNotifications(false)}
-                    />
-                </div>
+                {/* Notifications - New NotificationCenter */}
+                <NotificationCenter />
 
                 <div className="h-10 w-px bg-emerald-100/80 mx-1"></div>
 

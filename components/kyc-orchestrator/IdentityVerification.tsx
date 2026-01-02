@@ -2,6 +2,8 @@
 import React, { useState } from 'react';
 import { Search, CheckCircle, AlertCircle, Fingerprint, ShieldCheck } from 'lucide-react';
 import { saveVerification, checkExistingVerification } from '../../services/kycPersistence';
+import { notifyKYCVerified } from '../../services/notificationService';
+import { useAuth } from '../auth/AuthContext';
 
 interface IdentityVerificationProps {
     onComplete: (data: any) => void;
@@ -11,6 +13,7 @@ interface IdentityVerificationProps {
 }
 
 const IdentityVerification: React.FC<IdentityVerificationProps> = ({ onComplete, prefillData, loanId, entityName }) => {
+    const { user } = useAuth();
     const [bvn, setBvn] = useState(prefillData?.bvn || '');
     const [isVerifying, setIsVerifying] = useState(false);
     const [error, setError] = useState('');
@@ -75,6 +78,12 @@ const IdentityVerification: React.FC<IdentityVerificationProps> = ({ onComplete,
             }
 
             setIsVerifying(false);
+
+            // Create notification for successful verification
+            if (user) {
+                notifyKYCVerified(user.id, `${result.firstName} ${result.lastName}`, 'BVN');
+            }
+
             onComplete({
                 bvn: result.bvn,
                 firstName: result.firstName,

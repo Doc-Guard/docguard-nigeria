@@ -7,7 +7,7 @@ const WorkspaceSummary: React.FC = () => {
     const { user } = useAuth();
     const [metrics, setMetrics] = useState({
         activeLoans: 0,
-        pendingKYC: 0,
+        verifiedKYC: 0,
         overdueFilings: 0,
         portfolioValue: 0
     });
@@ -31,12 +31,12 @@ const WorkspaceSummary: React.FC = () => {
                     .eq('user_id', user.id)
                     .in('status', ['Active', 'Disbursed']),
 
-                // Pending KYC count
+                // Verified KYC count (entities with successful verification)
                 supabase
                     .from('kyc_requests')
                     .select('*', { count: 'exact', head: true })
                     .eq('user_id', user.id)
-                    .eq('status', 'Pending'),
+                    .eq('status', 'Verified'),
 
                 // Overdue filings (> 60 days old, not perfected)
                 supabase
@@ -69,7 +69,7 @@ const WorkspaceSummary: React.FC = () => {
 
             setMetrics({
                 activeLoans: loansRes.count || 0,
-                pendingKYC: kycRes.count || 0,
+                verifiedKYC: kycRes.count || 0,
                 overdueFilings: overdueCount,
                 portfolioValue: totalValue
             });
@@ -98,8 +98,8 @@ const WorkspaceSummary: React.FC = () => {
             bgGradient: 'from-emerald-50 to-emerald-100/50'
         },
         {
-            label: 'Pending KYC',
-            value: metrics.pendingKYC,
+            label: 'Verified KYC',
+            value: metrics.verifiedKYC,
             icon: UserCheck,
             color: 'purple',
             bgColor: 'bg-purple-500',

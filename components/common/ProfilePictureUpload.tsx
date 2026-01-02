@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Image, Upload } from 'lucide-react';
+import { useToast } from './Toast';
 
 interface ProfilePictureUploadProps {
     currentPicture?: string | null;
@@ -8,19 +9,20 @@ interface ProfilePictureUploadProps {
 
 const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ currentPicture, onUpload }) => {
     const [preview, setPreview] = useState<string | null>(currentPicture || null);
+    const { showToast } = useToast();
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.files?.[0];
+        const file = e.target.files?.[0];
         if (file) {
             // Validate file size (max 5MB)
             if (file.size > 5 * 1024 * 1024) {
-                alert('File size must be less than 5MB');
+                showToast('File size must be less than 5MB', 'error');
                 return;
             }
 
             // Validate file type
             if (!file.type.startsWith('image/')) {
-                alert('Please upload an image file');
+                showToast('Please upload an image file', 'error');
                 return;
             }
 

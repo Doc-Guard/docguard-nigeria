@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Clock, Calendar, ShieldCheck, FileText, Landmark, ExternalLink, Plus, ChevronRight, Briefcase, ChevronDown, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeft, Clock, Calendar, ShieldCheck, FileText, Landmark, ExternalLink, Plus, ChevronRight, Briefcase, ChevronDown, CheckCircle, XCircle, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../common/Toast';
 import { useNavigate } from 'react-router-dom';
 import PipelineStepper from './PipelineStepper';
 import ActivityFeed from '../dashboard/ActivityFeed';
+import KYCStatusBadge, { KYCBlockingMessage } from '../common/KYCStatusBadge';
+import { getLoanKYCStatus, LoanKYCStatus } from '../../services/kycPersistence';
+import ConfirmDialog, { useConfirmDialog } from '../common/ConfirmDialog';
 
 interface LoanDetailProps {
     loanId: string;
@@ -31,9 +34,11 @@ const LoanDetailView: React.FC<LoanDetailProps> = ({ loanId, onBack }) => {
     const [documents, setDocuments] = useState<any[]>([]);
     const [filings, setFilings] = useState<any[]>([]);
     const [kycRequests, setKycRequests] = useState<any[]>([]);
+    const [kycStatus, setKycStatus] = useState<LoanKYCStatus | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     const [isActionMenuOpen, setIsActionMenuOpen] = React.useState(false);
+    const confirmDialog = useConfirmDialog();
 
     const handleUpdateStage = async (newStage: string) => {
         setIsLoading(true);
@@ -106,6 +111,10 @@ const LoanDetailView: React.FC<LoanDetailProps> = ({ loanId, onBack }) => {
             if (kycError && kycError.code !== 'PGRST100') throw kycError;
             setKycRequests(kycData || []);
 
+            // Fetch KYC verification status
+            const status = await getLoanKYCStatus(loanId);
+            setKycStatus(status);
+
         } catch (error: any) {
             console.error('Error fetching details:', error);
             showToast('Could not load loan details', 'error');
@@ -122,6 +131,8 @@ const LoanDetailView: React.FC<LoanDetailProps> = ({ loanId, onBack }) => {
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-right-8 duration-500">
+            {/* Confirmation Dialog */}
+            <ConfirmDialog {...confirmDialog.ConfirmDialogProps} />
             {/* Header / Nav */}
             <button
                 onClick={onBack}
@@ -145,6 +156,7 @@ const LoanDetailView: React.FC<LoanDetailProps> = ({ loanId, onBack }) => {
                         </span>
                         <span>•</span>
                         <span className="font-mono text-emerald-700 font-bold">{loan.id.slice(0, 8)}</span>
+                        {kycStatus && <KYCStatusBadge status={kycStatus} loanId={loan.id} />}
                     </div>
                 </div>
 
@@ -188,30 +200,46 @@ const LoanDetailView: React.FC<LoanDetailProps> = ({ loanId, onBack }) => {
                                     <button
                                         className="w-full text-left px-3 py-2 rounded-lg text-xs font-bold text-amber-600 hover:bg-amber-50 flex items-center gap-2"
                                         onClick={() => {
-                                            if (window.confirm('Are you sure you want to close this facility?')) {
-                                                handleUpdateStage('Closed');
-                                            }
+                                            confirmDialog.openDialog({
+                                                title: 'Close Facility',
+                                                message: 'Are you sure you want to close this facility? This will mark the loan as closed in your portfolio.',
+                                                type: 'warning',
+                                                confirmText: 'Close Facility',
+                                                onConfirm: () => handleUpdateStage('Closed')
+                                            });
                                         }}
                                     >
                                         <XCircle size={14} /> Close Facility
                                     </button>
                                     <button
                                         className="w-full text-left px-3 py-2 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 flex items-center gap-2"
-                                        onClick={async () => {
-                                            if (window.confirm('⚠️ PERMANENT DELETE: This will permanently remove this facility and all associated data. This action cannot be undone. Continue?')) {
-                                                try {
-                                                    const { error } = await supabase.from('loans').delete().eq('id', loan.id);
-                                                    if (error) throw error;
-                                                    showToast('Facility deleted permanently', 'success');
-                                                    onBack(); // Navigate back to list
-                                                } catch (err: any) {
-                                                    console.error(err);
-                                                    showToast('Failed to delete facility: ' + err.message, 'error');
+                                        onClick={() => {
+                                            confirmDialog.openDialog({
+                                                title: 'Delete Facility Permanently',
+                                                message: 'This will permanently remove this facility and all associated data including KYC records, documents, and filings. This action cannot be undone.',
+                                                type: 'danger',
+                                                confirmText: 'Delete Permanently',
+                                                onConfirm: async () => {
+                                                    try {
+                                                        // Delete related records first to avoid foreign key constraint violations
+                                                        await supabase.from('kyc_requests').delete().eq('loan_id', loan.id);
+                                                        await supabase.from('documents').delete().eq('loan_id', loan.id);
+                                                        await supabase.from('filings').delete().eq('loan_id', loan.id);
+
+                                                        // Now delete the loan itself
+                                                        const { error } = await supabase.from('loans').delete().eq('id', loan.id);
+                                                        if (error) throw error;
+                                                        showToast('Facility deleted permanently', 'success');
+                                                        onBack(); // Navigate back to list
+                                                    } catch (err: any) {
+                                                        console.error(err);
+                                                        showToast('Failed to delete facility: ' + err.message, 'error');
+                                                    }
                                                 }
-                                            }
+                                            });
                                         }}
                                     >
-                                        <XCircle size={14} /> Delete Permanently
+                                        <Trash2 size={14} /> Delete Permanently
                                     </button>
                                 </div>
                             </div>
@@ -227,8 +255,8 @@ const LoanDetailView: React.FC<LoanDetailProps> = ({ loanId, onBack }) => {
                         <Briefcase size={16} /> Recommended Next Action
                     </h2>
 
-                    {/* Step 1: KYC */}
-                    {kycRequests.every(k => k.status !== 'Approved') && (
+                    {/* Step 1: KYC - Show when no kycStatus yet OR not fully verified */}
+                    {(!kycStatus || !kycStatus.isFullyVerified) && (
                         <div className="flex items-center justify-between">
                             <div>
                                 <h3 className="font-bold text-emerald-950">Verify Borrower Identity</h3>
@@ -251,8 +279,8 @@ const LoanDetailView: React.FC<LoanDetailProps> = ({ loanId, onBack }) => {
                         </div>
                     )}
 
-                    {/* Step 2: Documents (only if KYC approved) */}
-                    {kycRequests.some(k => k.status === 'Approved') && documents.length === 0 && (
+                    {/* Step 2: Documents (only if KYC fully verified) */}
+                    {kycStatus?.isFullyVerified && documents.length === 0 && (
                         <div className="flex items-center justify-between">
                             <div>
                                 <h3 className="font-bold text-emerald-950">Generate Security Documents</h3>
