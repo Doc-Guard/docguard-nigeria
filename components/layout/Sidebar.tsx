@@ -1,7 +1,8 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Leaf, LogOut, LayoutDashboard, FileText, ShieldCheck, UserCheck, BarChart3, HelpCircle, Settings as SettingsIcon, Briefcase } from 'lucide-react';
+import { Leaf, LogOut, LayoutDashboard, FileText, ShieldCheck, UserCheck, BarChart3, HelpCircle, Settings as SettingsIcon, Briefcase, AlertOctagon } from 'lucide-react';
+
 
 interface SidebarProps {
     onLogout: () => void;
@@ -16,8 +17,9 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
         { name: 'KYC', path: '/kyc', icon: UserCheck },
         { name: 'LMA Doc Builder', path: '/doc-builder', icon: FileText },
         { name: 'CAC Registry', path: '/registry', icon: ShieldCheck },
+        { name: 'Deadlines', path: '/deadlines', icon: AlertOctagon },
         { name: 'Analytics', path: '/analytics', icon: BarChart3 },
-        { name: 'Help ', path: '/help', icon:  HelpCircle },
+        { name: 'Help ', path: '/help', icon: HelpCircle },
     ];
 
     return (

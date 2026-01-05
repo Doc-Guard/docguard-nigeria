@@ -61,36 +61,13 @@ const IdentityVerification: React.FC<IdentityVerificationProps> = ({ onComplete,
                 m.nibssService.validateBVN(bvn, { entityName })
             );
 
-            // Save verification to database
-            const saveResult = await saveVerification({
-                verificationType: 'BVN',
-                entityName: `${result.firstName} ${result.lastName}`,
-                identifier: bvn,
-                status: 'Verified',
-                details: result,
-                loanId
-            });
-
-            if (!saveResult.success) {
-                setIsVerifying(false);
-                setError(saveResult.error || 'Failed to save verification');
-                return;
-            }
-
-            setIsVerifying(false);
-
-            // Create notification for successful verification
-            if (user) {
-                notifyKYCVerified(user.id, `${result.firstName} ${result.lastName}`, 'BVN');
-            }
-
             onComplete({
                 bvn: result.bvn,
                 firstName: result.firstName,
                 lastName: result.lastName,
                 dob: result.dob,
                 photoResult: 'MATCH',
-                verificationId: saveResult.data?.id
+                verificationDetails: result 
             });
         } catch (err: any) {
             setIsVerifying(false);
@@ -139,7 +116,7 @@ const IdentityVerification: React.FC<IdentityVerificationProps> = ({ onComplete,
 
                 <button
                     onClick={handleVerify}
-                    disabled={isVerifying || !bvn}
+                    disabled={isVerifying || bvn.length !== 11}
                     className="w-full py-4 bg-[#008751] text-white rounded-xl text-xs font-black uppercase tracking-[0.2em] hover:bg-emerald-700 shadow-xl shadow-emerald-900/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {isVerifying ? 'Verifying Identity...' : 'Verify on NIBSS Ledger'}

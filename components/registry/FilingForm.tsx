@@ -120,7 +120,8 @@ const FilingForm: React.FC<FilingFormProps> = ({
                                 type="text"
                                 required
                                 value={formData.rcNumber}
-                                onChange={(e) => handleChange('rcNumber', e.target.value)}
+                                onChange={(e) => handleChange('rcNumber', e.target.value.toUpperCase())}
+                                maxLength={14}
                                 className="w-full px-4 py-3 border border-emerald-200 rounded-xl text-sm font-medium font-mono focus:ring-2 focus:ring-[#008751] outline-none"
                                 placeholder="e.g., RC123456"
                             />

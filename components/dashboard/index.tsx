@@ -4,6 +4,7 @@ import { RefreshCcw, Zap } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../auth/AuthContext';
 import { analyzePortfolioRisks } from '../../services/geminiService';
+import { useDeadlines } from './useDeadlines';
 import ChartsSection from './ChartsSection';
 import DeadlineGuardian from './DeadlineGuardian';
 import WorkspaceSummary from './WorkspaceSummary';
@@ -12,13 +13,12 @@ import ActivityFeed from './ActivityFeed';
 
 const Dashboard: React.FC = () => {
     const { user } = useAuth();
-    const [isLoading, setIsLoading] = useState(true);
+
 
     // AI State
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [riskAnalysis, setRiskAnalysis] = useState<{ summary: string; severity: 'LOW' | 'MEDIUM' | 'HIGH' } | null>(null);
-    const [deadlines, setDeadlines] = useState<any[]>([]);
-    const [isDeadlinesLoading, setIsDeadlinesLoading] = useState(true);
+    const { deadlines, isLoading: isDeadlinesLoading, refresh } = useDeadlines();
 
     const fetchRiskAnalysis = async () => {
         setIsAnalyzing(true);
@@ -38,79 +38,9 @@ const Dashboard: React.FC = () => {
         }
     };
 
-    const fetchDashboardData = async () => {
-        if (!user) return;
-        setIsLoading(true);
-        setIsDeadlinesLoading(true);
-
-        try {
-            // Fetch Deadlines from Filings (pending ones)
-            const { data: pendingFilings } = await supabase
-                .from('filings')
-                .select('id, entity_name, filing_type, submission_date, status, created_at')
-                .eq('user_id', user.id)
-                .neq('status', 'Perfected')
-                .order('created_at', { ascending: true })
-                .limit(5);
-
-            const now = new Date();
-            const filingDeadlines = pendingFilings?.map(f => {
-                const createdDate = new Date(f.created_at);
-                // Calculate days since creation (90-day window from creation)
-                const perfectionDeadline = new Date(createdDate);
-                perfectionDeadline.setDate(perfectionDeadline.getDate() + 90);
-                const daysRemaining = Math.max(0, Math.ceil((perfectionDeadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-
-                return {
-                    id: f.id,
-                    days: daysRemaining,
-                    entity: f.entity_name,
-                    task: f.filing_type || 'CAC Filing'
-                };
-            }) || [];
-
-            // Also fetch pending loans (not yet in 'Active' or 'Closed' status) as deadline items
-            const { data: pendingLoans } = await supabase
-                .from('loans')
-                .select('id, borrower_name, pipeline_stage, created_at')
-                .eq('user_id', user.id)
-                .not('pipeline_stage', 'in', '("Active","Closed")')
-                .order('created_at', { ascending: true })
-                .limit(5);
-
-            const loanDeadlines = pendingLoans?.map(l => {
-                const createdDate = new Date(l.created_at);
-                // Assume a 30-day target to move through pipeline
-                const targetDate = new Date(createdDate);
-                targetDate.setDate(targetDate.getDate() + 30);
-                const daysRemaining = Math.max(0, Math.ceil((targetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-
-                return {
-                    id: l.id,
-                    days: daysRemaining,
-                    entity: l.borrower_name,
-                    task: `Move to ${l.pipeline_stage === 'Review' ? 'Approval' : l.pipeline_stage === 'Approval' ? 'Documentation' : 'Active'}`
-                };
-            }) || [];
-
-            // Combine and sort by days remaining (most urgent first)
-            const combinedDeadlines = [...filingDeadlines, ...loanDeadlines]
-                .sort((a, b) => a.days - b.days)
-                .slice(0, 5);
-
-            setDeadlines(combinedDeadlines);
-
-        } catch (e) {
-            console.error("Dashboard fetch failed", e);
-        } finally {
-            setIsLoading(false);
-            setIsDeadlinesLoading(false);
-        }
+    const handleRefresh = () => {
+        refresh();
     };
-
-    useEffect(() => {
-        fetchDashboardData();
-    }, [user]);
 
     return (
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -122,11 +52,11 @@ const Dashboard: React.FC = () => {
                 </div>
                 <div className="flex gap-2">
                     <button
-                        onClick={fetchDashboardData}
-                        disabled={isLoading}
+                        onClick={handleRefresh}
+                        disabled={isDeadlinesLoading}
                         className="p-2 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100 hover:bg-emerald-100 transition-all disabled:opacity-50"
                     >
-                        <RefreshCcw size={16} className={isLoading ? 'animate-spin' : ''} />
+                        <RefreshCcw size={16} className={isDeadlinesLoading ? 'animate-spin' : ''} />
                     </button>
                     <div className="px-4 py-2 bg-emerald-100/50 text-emerald-800 rounded-xl text-xs font-bold border border-emerald-200 flex items-center gap-2">
                         <Zap size={14} className="text-emerald-600" />
@@ -143,7 +73,7 @@ const Dashboard: React.FC = () => {
 
             {/* Activity Feed & Deadline Guardian */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <ActivityFeed isLoading={isLoading} />
+                <ActivityFeed isLoading={isDeadlinesLoading} />
 
                 <DeadlineGuardian
                     riskAnalysis={riskAnalysis}

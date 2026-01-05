@@ -13,13 +13,18 @@ import CorporateVerification from './CorporateVerification';
 import RiskScore from './RiskScore';
 import LoanSelector from '../common/LoanSelector';
 import { useToast } from '../common/Toast';
+import { saveVerification } from '../../services/kycPersistence';
+import { notifyKYCVerified } from '../../services/notificationService';
+import { useAuth } from '../auth/AuthContext';
 
 import { useLocation } from 'react-router-dom';
 
 const KYCOrchestrator: React.FC = () => {
     const { showToast } = useToast();
     const location = useLocation();
+    const { user } = useAuth();
     const [step, setStep] = useState(1);
+    const [isSaving, setIsSaving] = useState(false);
     const [kycData, setKycData] = useState<any>({});
     const [completedSteps, setCompletedSteps] = useState<number[]>([]);
     const [isLoanSelectorOpen, setIsLoanSelectorOpen] = useState(false);
@@ -63,6 +68,74 @@ const KYCOrchestrator: React.FC = () => {
         }
         if (step < 5) {
             setStep(step + 1);
+        }
+    };
+
+    const handleFinalize = async () => {
+        setIsSaving(true);
+        try {
+            const loanId = loanContext?.id;
+            const results = [];
+
+            // 1. Save Identity (BVN)
+            if (kycData.bvn && kycData.verificationDetails) {
+                const bvnResult = await saveVerification({
+                    verificationType: 'BVN',
+                    entityName: `${kycData.firstName} ${kycData.lastName}`,
+                    identifier: kycData.bvn,
+                    status: 'Verified',
+                    details: kycData.verificationDetails,
+                    loanId
+                });
+                results.push({ type: 'BVN', success: bvnResult.success });
+                if (bvnResult.success && user) {
+                    notifyKYCVerified(user.id, `${kycData.firstName} ${kycData.lastName}`, 'BVN');
+                }
+            }
+
+            // 2. Save Corporate (RC)
+            if (kycData.corporate?.rcNumber && kycData.corporate?.cacDetails) {
+                const rcResult = await saveVerification({
+                    verificationType: 'CAC_RC',
+                    entityName: kycData.corporate.companyName,
+                    identifier: kycData.corporate.rcNumber,
+                    status: 'Verified',
+                    details: kycData.corporate.cacDetails,
+                    loanId
+                });
+                results.push({ type: 'RC', success: rcResult.success });
+            }
+
+            // 3. Save Corporate (TIN)
+            if (kycData.corporate?.tin && kycData.corporate?.firsDetails) {
+                const tinResult = await saveVerification({
+                    verificationType: 'FIRS_TIN',
+                    entityName: kycData.corporate.companyName,
+                    identifier: kycData.corporate.tin,
+                    status: 'Verified',
+                    details: kycData.corporate.firsDetails,
+                    loanId
+                });
+                results.push({ type: 'TIN', success: tinResult.success });
+            }
+
+            const failures = results.filter(r => !r.success);
+            if (failures.length > 0) {
+                showToast(`Saved with ${failures.length} errors. Please check logs.`, 'warning');
+            } else {
+                showToast('All KYC records successfully verified and saved.', 'success');
+            }
+
+            // Mark step 5 as complete
+            if (!completedSteps.includes(5)) {
+                setCompletedSteps([...completedSteps, 5]);
+            }
+
+        } catch (error) {
+            console.error(error);
+            showToast('Failed to save KYC records', 'error');
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -148,7 +221,10 @@ const KYCOrchestrator: React.FC = () => {
                 />}
                 {step === 3 && <DocumentScanner onComplete={handleStepComplete} />}
                 {step === 4 && <LivenessCheck onComplete={handleStepComplete} />}
-                {step === 5 && <RiskScore score={98} details={kycData} />}
+                {step === 5 && <RiskScore score={98} details={kycData}
+                    // @ts-ignore
+                    onFinalize={handleFinalize}
+                />}
             </div>
 
             {/* Dev Navigation (Optional) */}

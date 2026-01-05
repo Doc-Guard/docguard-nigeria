@@ -80,41 +80,7 @@ const CorporateVerification: React.FC<CorporateVerificationProps> = ({ onComplet
             setCacData(cacResult);
             setFirsData(firsResult);
 
-            // If both (or provided ones) are valid, save and complete step
             if (cacResult?.status === 'ACTIVE' && (tin ? firsResult?.activeStatus === 'Active' : true)) {
-                // Save RC verification
-                if (cacResult) {
-                    const rcSave = await saveVerification({
-                        verificationType: 'CAC_RC',
-                        entityName: cacResult.companyName,
-                        identifier: rcNumber,
-                        status: 'Verified',
-                        details: cacResult,
-                        loanId
-                    });
-                    if (!rcSave.success) {
-                        setIsVerifying(false);
-                        setError(rcSave.error || 'Failed to save RC verification');
-                        return;
-                    }
-                }
-
-                // Save TIN verification
-                if (firsResult) {
-                    const tinSave = await saveVerification({
-                        verificationType: 'FIRS_TIN',
-                        entityName: cacResult?.companyName || 'Unknown Entity',
-                        identifier: tin,
-                        status: 'Verified',
-                        details: firsResult,
-                        loanId
-                    });
-                    if (!tinSave.success) {
-                        setIsVerifying(false);
-                        setError(tinSave.error || 'Failed to save TIN verification');
-                        return;
-                    }
-                }
 
                 setIsVerifying(false);
                 onComplete({
@@ -123,7 +89,9 @@ const CorporateVerification: React.FC<CorporateVerificationProps> = ({ onComplet
                         rcNumber: cacResult.rcNumber,
                         tin: firsResult?.tin,
                         directors: cacResult.directors,
-                        status: 'VERIFIED_ACTIVE'
+                        status: 'VERIFIED_ACTIVE',
+                        cacDetails: cacResult,
+                        firsDetails: firsResult
                     }
                 });
             } else {
@@ -159,9 +127,10 @@ const CorporateVerification: React.FC<CorporateVerificationProps> = ({ onComplet
                         <input
                             type="text"
                             value={rcNumber}
-                            onChange={(e) => setRcNumber(e.target.value)}
+                            onChange={(e) => setRcNumber(e.target.value.toUpperCase())}
                             className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-purple-500 outline-none transition-all"
                             placeholder="RC123456"
+                            maxLength={14}
                         />
                     </div>
                     <div>
@@ -174,6 +143,7 @@ const CorporateVerification: React.FC<CorporateVerificationProps> = ({ onComplet
                             onChange={(e) => setTin(e.target.value)}
                             className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-purple-500 outline-none transition-all"
                             placeholder="1000234567"
+                            maxLength={14}
                         />
                     </div>
                 </div>

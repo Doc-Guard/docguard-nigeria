@@ -35,8 +35,8 @@ class FIRSService {
         await new Promise(r => setTimeout(r, 1200));
 
         // Validate TIN format
-        if (!/^\d{10,12}$/.test(tin)) {
-            throw new Error("Invalid TIN format. Must be 10-12 digits.");
+        if (!/^\d{10,14}$/.test(tin)) {
+            throw new Error("Invalid TIN format. Must be 10-14 digits.");
         }
 
         // In production, this would call the actual FIRS API

@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.9.0",
   "description": "AI-Powered Loan Compliance & Origination Platform for Nigeria (LMA/CAC/KYC)",
-  "author": "LMA Edge Team",
+  "author": "Doc-Guard Team",
   "type": "module",
   "main": "dist-electron/main.cjs",
   "scripts": {
