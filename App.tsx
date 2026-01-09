@@ -11,8 +11,10 @@ const Loans = lazy(() => import('./components/loans'));
 const Login = lazy(() => import('./components/auth'));
 const Settings = lazy(() => import('./components/settings'));
 const ActivityPage = lazy(() => import('./components/dashboard/ActivityPage'));
+const DeadlinePage = lazy(() => import('./components/deadlines'));
 const HelpPage = lazy(() => import('./components/help/HelpPage'));
 const NotificationPage = lazy(() => import('./components/notifications/NotificationPage'));
+const OnboardingTour = lazy(() => import('./components/onboarding/OnboardingTour'));
 import MainLayout from './components/layout/MainLayout';
 
 import { AuthProvider, useAuth } from './components/auth/AuthContext';
@@ -21,9 +23,25 @@ import { ToastProvider } from './components/common/Toast';
 // Inner component to use the hook
 const AppContent: React.FC = () => {
   const location = useLocation();
-  const { session, loading, signOut, user, profile } = useAuth();
+  const { session, loading, signOut, user, profile, updateProfile } = useAuth();
+
+  const handleOnboardingComplete = async () => {
+    if (profile) {
+      try {
+        await updateProfile({
+          preferences: {
+            ...profile.preferences,
+            hasSeenOnboarding: true
+          }
+        });
+      } catch (e) {
+        console.error("Failed to update onboarding status", e);
+      }
+    }
+  };
 
   if (loading) {
+    // ... keep loading state ...
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-[#0a2e1f]">
         <div className="text-center">
@@ -56,8 +74,16 @@ const AppContent: React.FC = () => {
   // Determine display name (Profile > Metadata > Email)
   const displayName = profile?.full_name || user?.user_metadata?.full_name || user?.email || 'User';
 
+  // Check Onboarding Status
+  const showOnboarding = profile && (!profile.preferences || !profile.preferences.hasSeenOnboarding);
+
   return (
     <MainLayout userEmail={displayName} userProfilePic={profile?.avatar_url} onLogout={signOut}>
+      {showOnboarding && (
+        <Suspense fallback={null}>
+          <OnboardingTour onComplete={handleOnboardingComplete} />
+        </Suspense>
+      )}
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/doc-builder" element={<DocBuilder />} />
@@ -65,6 +91,7 @@ const AppContent: React.FC = () => {
         <Route path="/registry" element={<ChargeRegistry />} />
         <Route path="/kyc" element={<KYCOrchestrator />} />
         <Route path="/analytics" element={<Analytics />} />
+        <Route path="/deadlines" element={<DeadlinePage />} />
         <Route path="/activity" element={<ActivityPage />} />
         <Route path="/notifications" element={<NotificationPage />} />
         <Route path="/help" element={<HelpPage />} />

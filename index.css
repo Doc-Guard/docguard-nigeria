@@ -49,4 +49,9 @@
   body {
     @apply bg-[#fcfdfc] antialiased;
   }
+  
+  html, body, #root {
+      height: 100%;
+      overflow: hidden;
+  }
 }

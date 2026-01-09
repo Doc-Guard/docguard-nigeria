@@ -5,9 +5,10 @@ import { ShieldCheck, AlertTriangle } from 'lucide-react';
 interface RiskScoreProps {
     score: number;
     details: any;
+    onFinalize?: () => void;
 }
 
-const RiskScore: React.FC<RiskScoreProps> = ({ score, details }) => {
+const RiskScore: React.FC<RiskScoreProps> = ({ score, details, onFinalize }) => {
     const isSafe = score >= 80;
 
     return (
@@ -54,6 +55,13 @@ const RiskScore: React.FC<RiskScoreProps> = ({ score, details }) => {
                     <span className="font-bold text-[#008751]">99.9%</span>
                 </div>
             </div>
+
+            <button
+                onClick={() => onFinalize?.()}
+                className="w-full mt-8 py-4 bg-[#008751] text-white rounded-xl text-xs font-black uppercase tracking-[0.2em] hover:bg-emerald-700 shadow-xl shadow-emerald-900/20 transition-all active:scale-95 flex items-center justify-center gap-2"
+            >
+                Complete KYC Verification
+            </button>
         </div>
     );
 };

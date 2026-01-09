@@ -15,6 +15,7 @@ import {
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../auth/AuthContext';
 import { useToast } from '../common/Toast';
+import { checkExistingVerification, saveVerification } from '../../services/kycPersistence';
 
 interface OriginationWizardProps {
     onSuccess?: (loanId: string) => void;
@@ -39,7 +40,51 @@ const OriginationWizard: React.FC<OriginationWizardProps> = ({ onSuccess }) => {
     const [tin, setTin] = useState('');
     const [bvn, setBvn] = useState('');
 
+    // Validation Errors
+    const [errors, setErrors] = useState<{ rc?: string; tin?: string; bvn?: string }>({});
+
+    const validateForm = () => {
+        const newErrors: { rc?: string; tin?: string; bvn?: string } = {};
+        let isValid = true;
+
+        // RC Number: Must start with RC followed by digits
+        if (!rcNumber) {
+            newErrors.rc = "RC Number is required";
+            isValid = false;
+        } else if (!/^RC\d+$/i.test(rcNumber)) {
+            newErrors.rc = "RC Number must start with 'RC' followed by digits";
+            isValid = false;
+        } else if (rcNumber.length > 14) {
+            newErrors.rc = "RC Number cannot exceed 14 characters";
+            isValid = false;
+        }
+
+        // TIN: Max 14 chars
+        if (!tin) {
+            newErrors.tin = "TIN is required";
+            isValid = false;
+        } else if (tin.length > 14) {
+            newErrors.tin = "TIN cannot exceed 14 characters";
+            isValid = false;
+        }
+
+        // BVN: Exactly 11 digits
+        if (!bvn) {
+            newErrors.bvn = "BVN is required";
+            isValid = false;
+        } else if (!/^\d{11}$/.test(bvn)) {
+            newErrors.bvn = "BVN must be exactly 11 digits";
+            isValid = false;
+        }
+
+        setErrors(newErrors);
+        return isValid;
+    };
+
     const handleCreate = async () => {
+        // Run validation
+        if (!validateForm()) return;
+
         if (!user || !borrower || !amount) return;
         setIsLoading(true);
 
@@ -70,7 +115,51 @@ const OriginationWizard: React.FC<OriginationWizardProps> = ({ onSuccess }) => {
 
             if (error) throw error;
 
-            // Redirect to Loan Dashboard or Doc Builder with context
+            // 1. Check & Link RC Number
+            if (rcNumber) {
+                const existingRC = await checkExistingVerification('CAC_RC', rcNumber);
+                if (existingRC.exists && existingRC.record) {
+                    await saveVerification({
+                        verificationType: 'CAC_RC',
+                        entityName: existingRC.record.entity_name,
+                        identifier: rcNumber,
+                        status: 'Verified',
+                        details: existingRC.record.details,
+                        loanId: data.id
+                    });
+                }
+            }
+
+            // 2. Check & Link TIN
+            if (tin) {
+                const existingTIN = await checkExistingVerification('FIRS_TIN', tin);
+                if (existingTIN.exists && existingTIN.record) {
+                    await saveVerification({
+                        verificationType: 'FIRS_TIN',
+                        entityName: existingTIN.record.entity_name,
+                        identifier: tin,
+                        status: 'Verified',
+                        details: existingTIN.record.details,
+                        loanId: data.id
+                    });
+                }
+            }
+
+            // 3. Check & Link BVN
+            if (bvn) {
+                const existingBVN = await checkExistingVerification('BVN', bvn);
+                if (existingBVN.exists && existingBVN.record) {
+                    await saveVerification({
+                        verificationType: 'BVN',
+                        entityName: existingBVN.record.entity_name,
+                        identifier: bvn,
+                        status: 'Verified',
+                        details: existingBVN.record.details,
+                        loanId: data.id
+                    });
+                }
+            }
+
             if (onSuccess) {
                 onSuccess(data.id);
             } else {
@@ -189,13 +278,13 @@ const OriginationWizard: React.FC<OriginationWizardProps> = ({ onSuccess }) => {
                             <input
                                 type="text"
                                 value={rcNumber}
-                                onChange={(e) => setRcNumber(e.target.value)}
+                                onChange={(e) => setRcNumber(e.target.value.toUpperCase())}
                                 placeholder="RC123456"
-                                className={`w-full px-4 py-3 bg-white rounded-xl text-sm font-bold text-emerald-950 outline-none border transition-all ${rcNumber && !/^RC\d+$/i.test(rcNumber)
-                                    ? 'border-red-200 focus:border-red-500 focus:ring-2 focus:ring-red-100'
-                                    : 'border-gray-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100'
+                                maxLength={14}
+                                className={`w-full px-4 py-3 bg-white rounded-xl text-sm font-bold text-emerald-950 outline-none border transition-all ${errors.rc ? 'border-red-200 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100'
                                     }`}
                             />
+                            {errors.rc && <p className="text-red-500 text-xs font-medium flex items-center gap-1"><AlertTriangle size={12} /> {errors.rc}</p>}
                         </div>
                         <div className="space-y-2">
                             <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider pl-1">TIN (Tax ID)</label>
@@ -204,32 +293,36 @@ const OriginationWizard: React.FC<OriginationWizardProps> = ({ onSuccess }) => {
                                 value={tin}
                                 onChange={(e) => setTin(e.target.value)}
                                 placeholder="10-digit TIN"
-                                className="w-full px-4 py-3 bg-white rounded-xl text-sm font-bold text-emerald-950 outline-none border border-gray-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all"
+                                maxLength={14}
+                                className={`w-full px-4 py-3 bg-white rounded-xl text-sm font-bold text-emerald-950 outline-none border transition-all ${errors.tin ? 'border-red-200 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100'
+                                    }`}
                             />
+                            {errors.tin && <p className="text-red-500 text-xs font-medium flex items-center gap-1"><AlertTriangle size={12} /> {errors.tin}</p>}
                         </div>
                         <div className="space-y-2">
                             <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider pl-1">BVN (Director)</label>
                             <input
                                 type="text"
                                 value={bvn}
-                                onChange={(e) => setBvn(e.target.value)}
+                                onChange={(e) => {
+                                    const val = e.target.value.replace(/\D/g, ''); // Numeric only
+                                    setBvn(val);
+                                }}
                                 placeholder="11-digit BVN"
                                 maxLength={11}
-                                className="w-full px-4 py-3 bg-white rounded-xl text-sm font-bold text-emerald-950 outline-none border border-gray-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all"
+                                className={`w-full px-4 py-3 bg-white rounded-xl text-sm font-bold text-emerald-950 outline-none border transition-all ${errors.bvn ? 'border-red-200 focus:border-red-500 focus:ring-2 focus:ring-red-100' : 'border-gray-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100'
+                                    }`}
                             />
+                            {errors.bvn && <p className="text-red-500 text-xs font-medium flex items-center gap-1"><AlertTriangle size={12} /> {errors.bvn}</p>}
                         </div>
                     </div>
-                    {rcNumber && !/^RC\d+$/i.test(rcNumber) && (
-                        <p className="text-red-500 text-xs mt-2 font-medium flex items-center gap-1">
-                            <AlertTriangle size={12} /> Format invalid: Must start with "RC" followed by numbers
-                        </p>
-                    )}
+
                 </div>
 
                 <div className="pt-8 flex items-center justify-end border-t border-emerald-50">
                     <button
                         onClick={handleCreate}
-                        disabled={isLoading || !borrower || !amount}
+                        disabled={isLoading || !borrower || !amount || !rcNumber || !tin || !bvn}
                         className="flex items-center gap-2 px-10 py-4 bg-[#008751] text-white rounded-2xl text-sm font-black uppercase tracking-[0.2em] hover:bg-emerald-700 shadow-xl shadow-emerald-900/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isLoading ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle size={18} />}

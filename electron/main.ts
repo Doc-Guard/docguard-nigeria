@@ -18,7 +18,7 @@ let mainWindow: BrowserWindow | null = null;
 function createWindow() {
     mainWindow = new BrowserWindow({
         width: 1200,
-        height: 800,
+        height: 900,
         webPreferences: {
             preload: path.join(__dirname, 'preload.cjs'),
             nodeIntegration: false,
@@ -138,7 +138,7 @@ app.whenReady().then(() => {
     // SECURE STORAGE - SIMPLIFIED FOR LINUX
     // Note: safeStorage works best on Mac/Windows. On Linux it requires KWallet/Gnome Keyring.
     // For this build, we will store as plain text in the config for simplicity/robustness across Linux distros.
-    // In production, force safeStorage checks.
+    // In production,We will force safeStorage checks.
 
     ipcMain.handle('set-secret', async (event, key: string, value: string) => {
         try {
