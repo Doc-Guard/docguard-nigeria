@@ -87,7 +87,7 @@ const SystemStatus: React.FC = () => {
                     </div>
                     <div>
                         <h3 className="text-lg font-black text-emerald-950 tracking-tight">System Health</h3>
-                        <p className="text-xs text-emerald-600/50 font-medium">Real-time status of core services</p>
+                        <p className="text-xs text-emerald-600/50 font-medium">Real-time status of core services • v1.0.0</p>
                     </div>
                 </div>
 
