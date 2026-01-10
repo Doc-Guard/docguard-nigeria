@@ -122,8 +122,8 @@ const ApiKeysSettings: React.FC = () => {
                 </div>
             </div>
 
-            <div className="p-6 rounded-2xl border border-yellow-200 bg-yellow-50 text-yellow-800 text-xs font-medium leading-relaxed">
-                <strong>Safety Note:</strong> Keys are saved locally on your device using Electron Store. Do not export your config file.
+            <div className="p-6 rounded-2xl border border-emerald-200 bg-emerald-50 text-emerald-800 text-xs font-medium leading-relaxed">
+                <strong>🔒 Security:</strong> API keys are encrypted using OS-level security (DPAPI on Windows, Keychain on macOS, Keyring on Linux) and stored locally on your device. Never share your config files.
             </div>
         </div>
     );

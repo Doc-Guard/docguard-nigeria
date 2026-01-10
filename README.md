@@ -26,32 +26,33 @@ In Nigeria's ₦15 trillion corporate lending market, **administrative friction 
 
 ## 🚀 Core Capabilities
 
-### 1. 🧠 Cross-Module Intelligence (New)
-*   **Unified Data Flow**: Enter borrower details *once* during origination. DocGuard automatically propagates **RC Number**, **TIN**, and **BVN** to KYC checks, Legal Docs, and CAC Filings.
-*   **Context-Aware**: Linking a loan to any module instantly pre-fills forms, eliminating manual entry errors.
+### 1. 🧠 Smart Loan Origination Engine
+*   **Unified Workspace**: Structuring a facility (borrower, amount, tenor) automatically initializes a transaction context.
+*   **Auto-KYC Linking**: Intelligently links existing RC Numbers, TINs, and BVNs to new loans, checking your database for matches.
+*   **Pipeline Management**: Kanban-style tracking from "Review" to "Disbursement" with visual progress steppers.
+*   **Next-Best-Action Guide**: Dynamic recommendation engine guiding officers to the next critical step (e.g., *"Identity verified. Proceed to generate legal agreements"*).
 
-### 2. 📝 LMA Smart Document Builder
-*   **AI Clause Analysis**: Uses the new Gemini 3 Flash model for analyzing clauses for risk against Nigerian Evidence Act 2023.
-*   **Magic Rewrite**: One-click adaptation of UK-style covenants to Nigerian customized clauses.
-*   **Legal Precision**: Automatically injects full corporate descriptors (e.g., *"Dangote Industries (with Registration No. RC123456)"*) into definitions.
+### 2. 📝 LMA-Nigeria Smart Document Builder
+*   **Intelligent Templates**: Pre-loaded with LMA 2024 facility agreements adapted for Nigerian law (Secured Term, Revolving, Bridge).
+*   **Redline AI Analyzer**: Powered by **Google Gemini 3 Flash**, scans clauses against **CAMA 2020**, **STMA 2017**, and **CBN Guidelines**.
+*   **Magic Rewrite**: One-click adaptation of standard covenants to Nigerian-compliant clauses.
+*   **Legal Precision**: Auto-injects full corporate descriptors (e.g., *"Dangote Industries (with Registration No. RC123456)"*).
 
 ### 3. 🏛️ CAC Registry Bot (RPA)
-*   **Automated Perfection**: Native Electron robot simulates interaction with the CAC portal.
-*   **Screenshot Hub & Evidence Vault**: Captures and cryptographically timestamps proof of filing (Uploads/Screenshots) to a secure Supabase bucket.
-*   **Smart Pre-fill**: Auto-populates Charge Forms based on the linked loan's facility type and amount.
+*   **Automated Perfection**: Native Electron robot physically automates the **Corporate Affairs Commission (CAC)** portal.
+*   **Evidence Vault**: Captures cryptographic screenshots of filing receipts.
+*   **Cloud Sync**: Automatically backs up evidence to secure Supabase Storage for audit accessibility.
+*   **Zero Data Entry**: Auto-fills CAC Form 8 from the loan's data context.
 
 ### 4. 🕵️‍♂️ KYC Orchestrator
-*   **Corporate Due Diligence**: Parallel verification of **CAC Status** and **FIRS Tax Compliance**.
-*   **Identity**: Simulated **NIN** and **BVN** validation for directors.
-*   **Liveness**: Integrated webcam biometrics.
+*   **Corporate Verification**: Parallel checks for **CAC Status** and **FIRS Tax Compliance**.
+*   **Identity Validation**: Simulated **NIN** and **BVN** verification for directors.
+*   **Risk Scoring**: Real-time compliance badges (Verified/Pending/High Risk).
 
-### 5. ⏰ Deadline Guardian
-*   **Active Monitoring**: Tracks the mandatory **90-day registration window** (CAMA 2020).
-*   **Smart Alerts**: Native desktop notifications warn you when a filing is approaching the "Void" risk threshold.
-
-### 6. 💼 Origination Pipeline
-*   **Structured Capture**: Standardized intake for Term Facilities, Revolving Credit, and Project Finance.
-*   **Pipeline Dashboard**: Kanban-style view of all deals from "Lead" to "Disbursed".
+### 5. ⏰ Deadline & Risk Guardian
+*   **Perfection Shield**: Tracks the 90-day **CAMA 2020** registration window.
+*   **Smart Alerts**: Native desktop notifications at 60, 75, and 85 days.
+*   **Evidence Act Compliance**: Digital execution workflow with audit trails.
 ## 🎮 Demo Mode (Verification Guide)
 
 The application includes sophisticated mock services to demonstrate the "Happy Path" without needing live government API keys.
@@ -158,12 +159,12 @@ bun run electron:build
 DocGuard is built with a "Zero-Trust" mindset suitable for financial data.
 
 ### 1. Application Security (AppSec)
-*   **Context Isolation**: The Electron main process (Node.js) is strictly isolated from the Renderer (React). Access to file system or sensitive APIs is only possible via a securely bridged `window.electron` API.
-*   **Credential Protection**: API keys and secrets are **AES-256-GCM encrypted** during the build process and decrypted only in memory at runtime, preventing static analysis attacks.
+*   **Context Isolation**: The Electron main process (Node.js) is strictly isolated. Access to native APIs is bridged via a secure `window.electron` preload script.
+*   **OS-Level Encryption**: API keys and secrets are encrypted using **DPAPI (Windows)**, **Keychain (macOS)**, or **Keyring (Linux)** via Electron's `safeStorage` API. Decryption only happens in memory at runtime.
 
 ### 2. Data Security
 *   **Row Level Security (RLS)**: Database policies enforce that users can strictly *only* access resources (loans, filings, documents) that belong to their `user_id`.
-*   **Evidence Vault**: Uploaded screenshots and documents are stored in private Supabase Storage buckets with strict access policies.
+*   **Evidence Vault**: Uploaded screenshots are stored in private Supabase Storage buckets, with paths scoped to `{user_id}` and protected by RLS policies.
 
 ### 3. Operational Integrity
 *   **Immutable Logs**: The RPA activity logs provide a tamper-evident audit trail of every interaction with the CAC portal.

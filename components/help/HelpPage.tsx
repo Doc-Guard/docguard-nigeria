@@ -196,7 +196,7 @@ const HelpPage: React.FC = () => {
 
             {/* Version Info */}
             <div className="text-center text-xs text-emerald-500 pb-8">
-                DocGuard Nigeria v0.9.0 • © 2026 Doc-Guard Team
+                DocGuard Nigeria v1.0.0 • © 2026 Doc-Guard Team
             </div>
         </div>
     );

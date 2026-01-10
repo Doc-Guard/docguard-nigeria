@@ -135,14 +135,21 @@ app.whenReady().then(() => {
         }
     });
 
-    // SECURE STORAGE - SIMPLIFIED FOR LINUX
-    // Note: safeStorage works best on Mac/Windows. On Linux it requires KWallet/Gnome Keyring.
-    // For this build, we will store as plain text in the config for simplicity/robustness across Linux distros.
-    // In production,We will force safeStorage checks.
+    // SECURE STORAGE - CROSS-PLATFORM ENCRYPTION
+    // Uses OS-level encryption: DPAPI (Windows), Keychain (macOS), or Keyring (Linux)
 
     ipcMain.handle('set-secret', async (event, key: string, value: string) => {
         try {
-            store.set(key, value);
+            if (safeStorage.isEncryptionAvailable()) {
+                // Encrypt the secret using OS-level APIs (DPAPI, Keychain, etc.)
+                const encryptedBuffer = safeStorage.encryptString(value);
+                // Convert encrypted bytes to base64 for JSON storage
+                store.set(key, encryptedBuffer.toString('base64'));
+            } else {
+                // Fallback for Linux without keyring - store with warning flag
+                console.warn(`[SECURITY WARNING] Encryption unavailable for "${key}", storing in plaintext`);
+                store.set(`${key}_plaintext`, value);
+            }
             return { success: true };
         } catch (error: any) {
             return { success: false, error: error.message };
@@ -151,8 +158,19 @@ app.whenReady().then(() => {
 
     ipcMain.handle('get-secret', async (event, key: string) => {
         try {
-            const value = store.get(key);
-            return { success: true, value };
+            if (safeStorage.isEncryptionAvailable()) {
+                const encryptedBase64 = store.get(key) as string;
+                if (!encryptedBase64) return { success: true, value: null };
+
+                // Convert base64 back to buffer and decrypt
+                const encryptedBuffer = Buffer.from(encryptedBase64, 'base64');
+                const decrypted = safeStorage.decryptString(encryptedBuffer);
+                return { success: true, value: decrypted };
+            } else {
+                // Fallback: read plaintext version
+                const value = store.get(`${key}_plaintext`);
+                return { success: true, value };
+            }
         } catch (error: any) {
             return { success: false, error: error.message };
         }
