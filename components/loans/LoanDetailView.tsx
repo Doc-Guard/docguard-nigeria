@@ -113,7 +113,7 @@ const LoanDetailView: React.FC<LoanDetailProps> = ({ loanId, onBack }) => {
                 .from('filings')
                 .select('*')
                 .eq('loan_id', loanId)
-                .order('created_at', { ascending: false });
+                .order('submission_date', { ascending: false }); // Use submission_date instead of created_at
 
             if (filingsError) {
                 console.error('Filings fetch error:', filingsError);
