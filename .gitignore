@@ -36,3 +36,4 @@ dist/
 release/
 node_modules/
 project_story.md
+OAUTH_CREDENTIALS.md
