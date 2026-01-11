@@ -68,15 +68,15 @@ const LoanDetailView: React.FC<LoanDetailProps> = ({ loanId, onBack }) => {
         }
     }, [loanId]);
 
-    // Refetch when returning from KYC or when selectedLoanId matches
+    // Refetch when returning from KYC
     React.useEffect(() => {
         const state = location.state as any;
         if (state?.selectedLoanId === loanId || state?.refreshKYC) {
-            fetchLoanDetails();
-            // Clear the state to avoid infinite refetches
+            // Clear state immediately and refetch
             window.history.replaceState({}, document.title);
+            fetchLoanDetails();
         }
-    }, [location.state, loanId]);
+    }, []); // Run only once on mount to check navigation state
 
     const fetchLoanDetails = async () => {
         setIsLoading(true);
