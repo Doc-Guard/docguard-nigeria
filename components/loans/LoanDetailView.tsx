@@ -71,7 +71,8 @@ const LoanDetailView: React.FC<LoanDetailProps> = ({ loanId, onBack }) => {
     // Refetch when returning from KYC
     React.useEffect(() => {
         const state = location.state as any;
-        if (state?.selectedLoanId === loanId || state?.refreshKYC) {
+        // Only refetch if we actually have navigation state indicating we came from KYC
+        if (state && (state.selectedLoanId === loanId || state.refreshKYC)) {
             // Clear state immediately and refetch
             window.history.replaceState({}, document.title);
             fetchLoanDetails();
