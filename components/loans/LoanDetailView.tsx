@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Clock, Calendar, ShieldCheck, FileText, Landmark, ExternalLink, Plus, ChevronRight, Briefcase, ChevronDown, CheckCircle, XCircle, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../common/Toast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import PipelineStepper from './PipelineStepper';
 import ActivityFeed from '../dashboard/ActivityFeed';
 import KYCStatusBadge, { KYCBlockingMessage } from '../common/KYCStatusBadge';
@@ -29,6 +29,7 @@ interface Loan {
 
 const LoanDetailView: React.FC<LoanDetailProps> = ({ loanId, onBack }) => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { showToast } = useToast();
     const [loan, setLoan] = useState<Loan | null>(null);
     const [documents, setDocuments] = useState<any[]>([]);
@@ -66,6 +67,16 @@ const LoanDetailView: React.FC<LoanDetailProps> = ({ loanId, onBack }) => {
             fetchLoanDetails();
         }
     }, [loanId]);
+
+    // Refetch when returning from KYC or when selectedLoanId matches
+    React.useEffect(() => {
+        const state = location.state as any;
+        if (state?.selectedLoanId === loanId || state?.refreshKYC) {
+            fetchLoanDetails();
+            // Clear the state to avoid infinite refetches
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state, loanId]);
 
     const fetchLoanDetails = async () => {
         setIsLoading(true);
