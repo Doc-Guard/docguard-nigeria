@@ -11,7 +11,7 @@ All binaries are hosted on Google Drive with public access (anyone with the link
 
 **AppImage (Portable - Recommended)**
 - **Size:** 137.1 MB
-- **Download:** https://drive.google.com/uc?export=download&id=1qlkpXfI1bJlmKV2V8i6wfO7ZwTqQav0n
+- **Download:** https://drive.google.com/uc?export=download&id=10hDhTqxB8vQbWKSHkCQGHGFTBHvp7e8y
 - **Installation:** Double-click the AppImage file to run it. No installation is required. or run the following commands:
   ```bash
   chmod +x DocGuard-1.0.0.AppImage
@@ -20,7 +20,7 @@ All binaries are hosted on Google Drive with public access (anyone with the link
 
 **Snap Package**
 - **Size:** 116.2 MB
-- **Download:** https://drive.google.com/uc?export=download&id=1eIxHYmzdsKA3bDLHlMmGQAs30jiiL9wu
+- **Download:** https://drive.google.com/uc?export=download&id=1h3S48t4Kt5e4_25500KmNWftyGHL9v6Z
 - **Installation:** Run the following command:
   ```bash
   sudo snap install --dangerous docguard_1.0.0_amd64.snap
@@ -30,7 +30,7 @@ All binaries are hosted on Google Drive with public access (anyone with the link
 
 **NSIS Installer**
 - **Size:** 108.6 MB
-- **Download:** https://drive.google.com/uc?export=download&id=1Ybzt15_d4M6jfvqnwAb1lrEzznw46a3A
+- **Download:** https://drive.google.com/uc?export=download&id=1jbypxGGWIrSJ50GPBzL_A6MQvPwI6LCD
 - **Installation:** Double-click and the installer wizard will handle the installation.
 
 ---
