@@ -109,7 +109,7 @@ const LoanList: React.FC<LoanListProps> = ({ onSelectLoan, onNewLoan }) => {
                         <span className="text-xs font-bold text-emerald-900/40 uppercase tracking-widest">Total Exposure</span>
                     </div>
                     <div className="text-2xl font-black text-emerald-950">
-                        ₦{(loans.reduce((acc, curr) => acc + (curr.currency === 'NGN' ? curr.amount : curr.amount * 1500), 0) / 1000000).toFixed(1)}M
+                        ₦{(loans.reduce((acc, curr) => acc + (curr.currency === 'NGN' ? curr.amount : curr.amount * 1500), 0) / 1000000).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M
                     </div>
                     <div className="text-xs text-emerald-600 mt-1 font-medium">+12% vs last month</div>
                 </div>
