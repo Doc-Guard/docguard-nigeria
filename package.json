@@ -17,6 +17,7 @@
   "dependencies": {
     "@google/genai": "^1.34.0",
     "@supabase/supabase-js": "^2.89.0",
+    "@vercel/speed-insights": "^1.0.12",
     "electron-squirrel-startup": "^1.0.1",
     "electron-store": "^11.0.2",
     "jspdf": "^3.0.4",

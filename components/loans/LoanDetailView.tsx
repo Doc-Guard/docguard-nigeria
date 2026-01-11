@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Clock, Calendar, ShieldCheck, FileText, Landmark, ExternalLink, Plus, ChevronRight, Briefcase, ChevronDown, CheckCircle, XCircle, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../common/Toast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import PipelineStepper from './PipelineStepper';
 import ActivityFeed from '../dashboard/ActivityFeed';
 import KYCStatusBadge, { KYCBlockingMessage } from '../common/KYCStatusBadge';
@@ -29,6 +29,7 @@ interface Loan {
 
 const LoanDetailView: React.FC<LoanDetailProps> = ({ loanId, onBack }) => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { showToast } = useToast();
     const [loan, setLoan] = useState<Loan | null>(null);
     const [documents, setDocuments] = useState<any[]>([]);
@@ -67,6 +68,17 @@ const LoanDetailView: React.FC<LoanDetailProps> = ({ loanId, onBack }) => {
         }
     }, [loanId]);
 
+    // Refetch when returning from KYC
+    React.useEffect(() => {
+        const state = location.state as any;
+        // Only refetch if we actually have navigation state indicating we came from KYC
+        if (state && (state.selectedLoanId === loanId || state.refreshKYC)) {
+            // Clear state immediately and refetch
+            window.history.replaceState({}, document.title);
+            fetchLoanDetails();
+        }
+    }, []); // Run only once on mount to check navigation state
+
     const fetchLoanDetails = async () => {
         setIsLoading(true);
         try {
@@ -77,7 +89,10 @@ const LoanDetailView: React.FC<LoanDetailProps> = ({ loanId, onBack }) => {
                 .eq('id', loanId)
                 .single();
 
-            if (loanError) throw loanError;
+            if (loanError) {
+                console.error('Loan fetch error:', loanError);
+                throw new Error(`Failed to fetch loan: ${loanError.message}`);
+            }
             setLoan(loanData);
 
             // Fetch related documents
@@ -87,7 +102,10 @@ const LoanDetailView: React.FC<LoanDetailProps> = ({ loanId, onBack }) => {
                 .eq('loan_id', loanId)
                 .order('created_at', { ascending: false });
 
-            if (docsError) throw docsError;
+            if (docsError) {
+                console.error('Documents fetch error:', docsError);
+                throw new Error(`Failed to fetch documents: ${docsError.message}`);
+            }
             setDocuments(docsData || []);
 
             // Fetch related filings
@@ -95,9 +113,12 @@ const LoanDetailView: React.FC<LoanDetailProps> = ({ loanId, onBack }) => {
                 .from('filings')
                 .select('*')
                 .eq('loan_id', loanId)
-                .order('created_at', { ascending: false });
+                .order('submission_date', { ascending: false });
 
-            if (filingsError) throw filingsError;
+            if (filingsError) {
+                console.error('Filings fetch error:', filingsError);
+                throw new Error(`Failed to fetch filings: ${filingsError.message}`);
+            }
             setFilings(filingsData || []);
 
             // Fetch related KYC
@@ -108,7 +129,10 @@ const LoanDetailView: React.FC<LoanDetailProps> = ({ loanId, onBack }) => {
                 .order('created_at', { ascending: false });
 
             // Allow error if kyc table doesn't have loan_id yet? No, I verified it does.
-            if (kycError && kycError.code !== 'PGRST100') throw kycError;
+            if (kycError && kycError.code !== 'PGRST100') {
+                console.error('KYC fetch error:', kycError);
+                throw new Error(`Failed to fetch KYC: ${kycError.message}`);
+            }
             setKycRequests(kycData || []);
 
             // Fetch KYC verification status
@@ -116,8 +140,9 @@ const LoanDetailView: React.FC<LoanDetailProps> = ({ loanId, onBack }) => {
             setKycStatus(status);
 
         } catch (error: any) {
-            console.error('Error fetching details:', error);
-            showToast('Could not load loan details', 'error');
+            console.error('Error fetching loan details:', error);
+            // Show specific error message instead of generic one
+            showToast(error.message || 'Could not load loan details', 'error');
         } finally {
             setIsLoading(false);
         }

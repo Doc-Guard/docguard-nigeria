@@ -1,7 +1,7 @@
 import React from 'react';
-import { AlertTriangle, Trash2, Info, HelpCircle, X } from 'lucide-react';
+import { AlertTriangle, Trash2, Info, HelpCircle, X, CheckCircle } from 'lucide-react';
 
-export type ConfirmDialogType = 'danger' | 'warning' | 'info' | 'question';
+export type ConfirmDialogType = 'danger' | 'warning' | 'info' | 'question' | 'success';
 
 interface ConfirmDialogProps {
     isOpen: boolean;
@@ -19,7 +19,8 @@ const iconMap = {
     danger: Trash2,
     warning: AlertTriangle,
     info: Info,
-    question: HelpCircle
+    question: HelpCircle,
+    success: CheckCircle
 };
 
 const colorMap = {
@@ -42,6 +43,12 @@ const colorMap = {
         border: 'border-blue-100'
     },
     question: {
+        icon: 'text-emerald-500',
+        iconBg: 'bg-emerald-50',
+        button: 'bg-emerald-600 hover:bg-emerald-700 text-white',
+        border: 'border-emerald-100'
+    },
+    success: {
         icon: 'text-emerald-500',
         iconBg: 'bg-emerald-50',
         button: 'bg-emerald-600 hover:bg-emerald-700 text-white',
@@ -142,6 +149,7 @@ export const useConfirmDialog = () => {
         message: string;
         type: ConfirmDialogType;
         confirmText?: string;
+        cancelText?: string;
         onConfirm: () => void | Promise<void>;
     }>({
         title: '',
@@ -155,6 +163,7 @@ export const useConfirmDialog = () => {
         message: string;
         type?: ConfirmDialogType;
         confirmText?: string;
+        cancelText?: string;
         onConfirm: () => void | Promise<void>;
     }) => {
         setConfig({
@@ -162,6 +171,7 @@ export const useConfirmDialog = () => {
             message: options.message,
             type: options.type || 'question',
             confirmText: options.confirmText,
+            cancelText: options.cancelText,
             onConfirm: options.onConfirm
         });
         setIsOpen(true);
@@ -198,7 +208,8 @@ export const useConfirmDialog = () => {
             title: config.title,
             message: config.message,
             type: config.type,
-            confirmText: config.confirmText
+            confirmText: config.confirmText,
+            cancelText: config.cancelText
         }
     };
 };

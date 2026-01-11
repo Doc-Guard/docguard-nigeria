@@ -2,6 +2,7 @@
 import React, { lazy, Suspense } from 'react';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import Dashboard from './components/dashboard';
 const DocBuilder = lazy(() => import('./components/doc-builder'));
 const ChargeRegistry = lazy(() => import('./components/registry'));
@@ -106,6 +107,7 @@ const App: React.FC = () => {
     <ToastProvider>
       <AuthProvider>
         <AppContent />
+        <SpeedInsights />
       </AuthProvider>
     </ToastProvider>
   );

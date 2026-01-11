@@ -1,0 +1,12 @@
+node_modules
+.git
+release
+dist-electron
+electron
+*.log
+.env.local
+.env*.local
+*.AppImage
+*.snap
+*.exe
+build

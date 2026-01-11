@@ -16,13 +16,16 @@ import { useToast } from '../common/Toast';
 import { saveVerification } from '../../services/kycPersistence';
 import { notifyKYCVerified } from '../../services/notificationService';
 import { useAuth } from '../auth/AuthContext';
+import ConfirmDialog, { useConfirmDialog } from '../common/ConfirmDialog';
 
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const KYCOrchestrator: React.FC = () => {
     const { showToast } = useToast();
     const location = useLocation();
+    const navigate = useNavigate();
     const { user } = useAuth();
+    const confirmDialog = useConfirmDialog();
     const [step, setStep] = useState(1);
     const [isSaving, setIsSaving] = useState(false);
     const [kycData, setKycData] = useState<any>({});
@@ -123,12 +126,25 @@ const KYCOrchestrator: React.FC = () => {
             if (failures.length > 0) {
                 showToast(`Saved with ${failures.length} errors. Please check logs.`, 'warning');
             } else {
-                showToast('All KYC records successfully verified and saved.', 'success');
-            }
+                // Mark step 5 as complete
+                if (!completedSteps.includes(5)) {
+                    setCompletedSteps([...completedSteps, 5]);
+                }
 
-            // Mark step 5 as complete
-            if (!completedSteps.includes(5)) {
-                setCompletedSteps([...completedSteps, 5]);
+                // Show success dialog with auto-redirect option
+                const entityName = loanContext?.borrower_name || 'the entity';
+                confirmDialog.openDialog({
+                    title: 'KYC Verification Complete',
+                    message: `Successfully verified ${results.length} identifiers for ${entityName}. All compliance checks passed. ${loanContext ? 'Click "View Loan Details" to proceed with document generation.' : ''}`,
+                    type: 'success',
+                    confirmText: loanContext ? 'View Loan Details' : 'Done',
+                    cancelText: loanContext ? 'Stay Here' : undefined,
+                    onConfirm: () => {
+                        if (loanContext?.id) {
+                            navigate('/loans', { state: { selectedLoanId: loanContext.id, refreshKYC: true } });
+                        }
+                    }
+                });
             }
 
         } catch (error) {
@@ -149,6 +165,7 @@ const KYCOrchestrator: React.FC = () => {
 
     return (
         <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-700">
+            <ConfirmDialog {...confirmDialog.ConfirmDialogProps} />
             <div className="flex flex-col items-center justify-center text-center space-y-4 mb-12">
                 <LoanSelector
                     isOpen={isLoanSelectorOpen}
