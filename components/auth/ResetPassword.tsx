@@ -9,6 +9,7 @@ const ResetPassword: React.FC = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState(false);
     const navigate = useNavigate();
 
     const handleReset = async (e: React.FormEvent) => {
@@ -35,15 +36,49 @@ const ResetPassword: React.FC = () => {
 
             if (error) throw error;
 
-            // Log out to force re-login with new password or redirect to dashboard
-            // Typically user expects to be logged in. 
-            navigate('/');
+            // Sign out to prevent auto-login
+            await supabase.auth.signOut();
+            setSuccess(true);
         } catch (err: any) {
             setError(err.message || "Failed to update password.");
         } finally {
             setLoading(false);
         }
     };
+
+    if (success) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-[#0a2e1f] p-6 relative overflow-hidden">
+                {/* Background Orbs */}
+                <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-emerald-800/20 rounded-full blur-[120px] -z-0"></div>
+                <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-emerald-950/40 rounded-full blur-[100px] -z-0"></div>
+
+                <div className="w-full max-w-lg relative z-10">
+                    <div className="bg-white rounded-[40px] shadow-2xl overflow-hidden border border-emerald-900/10">
+                        <div className="p-10 md:p-14 text-center">
+                            <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <ShieldCheck size={40} className="text-[#008751]" />
+                            </div>
+                            <h1 className="text-2xl font-black text-emerald-950 tracking-tight mb-4">Password Updated!</h1>
+                            <p className="text-emerald-900/60 font-medium mb-8">
+                                Your password has been successfully reset.
+                                <br />
+                                You can now close this tab and return to the app, or proceed to login.
+                            </p>
+
+                            <button
+                                onClick={() => navigate('/login')}
+                                className="w-full py-4 bg-[#008751] text-white rounded-2xl font-black uppercase tracking-[0.2em] shadow-xl shadow-emerald-900/20 hover:bg-emerald-700 transition-all active:scale-[0.98] flex items-center justify-center gap-3"
+                            >
+                                Proceed to Login
+                                <ArrowRight size={20} />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#0a2e1f] p-6 relative overflow-hidden">
@@ -136,8 +171,8 @@ const ResetPassword: React.FC = () => {
                     DocGuard Nigeria v1.0.0
                 </p>
             </div>
-        </div>
-    );
+            );
+    };
 };
 
-export default ResetPassword;
+            export default ResetPassword;
