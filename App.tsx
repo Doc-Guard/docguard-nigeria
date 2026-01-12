@@ -23,12 +23,29 @@ import { AuthProvider, useAuth } from './components/auth/AuthContext';
 import { ToastProvider } from './components/common/Toast';
 
 // Inner component to use the hook
+// Inner component to use the hook
 const AppContent: React.FC = () => {
   const location = useLocation();
-  const { session, loading, signOut, user, profile, updateProfile } = useAuth();
+  const { session, loading, signOut, user, profile, updateProfile, authEvent } = useAuth();
 
   // Define routes that use the Main Layout (Authenticated)
   const isPublicRoute = location.pathname === '/login' || location.pathname === '/reset-password';
+
+  // Handling Password Recovery Event from Supabase
+  // When a user clicks a recovery link, they are signed in and the event PASSWORD_RECOVERY is fired.
+  // We must redirect them to the reset password page regardless of current URL.
+  React.useEffect(() => {
+    if (authEvent === 'PASSWORD_RECOVERY') {
+      if (location.pathname !== '/reset-password') {
+        // Force update URL to reset-password to show the correct component
+        window.history.replaceState(null, '', '/reset-password');
+        // Reload to ensure router picks up the change if needed, 
+        // though pushing to history might be enough for some routers, 
+        // a hard reload guarantees we break out of any dashboard loop.
+        window.location.href = '/reset-password';
+      }
+    }
+  }, [authEvent, location.pathname]);
 
   const handleOnboardingComplete = async () => {
     if (profile) {

@@ -20,6 +20,7 @@ interface AuthContextType {
     loading: boolean;
     signOut: () => Promise<void>;
     updateProfile: (updates: Partial<Profile>) => Promise<any>;
+    authEvent: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,6 +30,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [user, setUser] = useState<User | null>(null);
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
+    const [authEvent, setAuthEvent] = useState<string | null>(null);
 
     const fetchProfile = async (userId: string) => {
         try {
@@ -73,6 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // Listener
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            setAuthEvent(_event);
             setSession(session);
             setUser(session?.user ?? null);
             if (session?.user) {
@@ -112,7 +115,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ session, user, profile, loading, signOut, updateProfile }}>
+        <AuthContext.Provider value={{ session, user, profile, loading, signOut, updateProfile, authEvent }}>
             {children}
         </AuthContext.Provider>
     );
