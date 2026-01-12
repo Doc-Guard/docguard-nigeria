@@ -171,7 +171,8 @@ const ResetPassword: React.FC = () => {
                     DocGuard Nigeria v1.0.0
                 </p>
             </div>
-            );
+        </div>
+    );
 };
 
-            export default ResetPassword;
+export default ResetPassword;
