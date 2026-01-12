@@ -10,6 +10,7 @@ const KYCOrchestrator = lazy(() => import('./components/kyc-orchestrator'));
 const Analytics = lazy(() => import('./components/analytics'));
 const Loans = lazy(() => import('./components/loans'));
 const Login = lazy(() => import('./components/auth'));
+const ResetPassword = lazy(() => import('./components/auth/ResetPassword'));
 const Settings = lazy(() => import('./components/settings'));
 const ActivityPage = lazy(() => import('./components/dashboard/ActivityPage'));
 const DeadlinePage = lazy(() => import('./components/deadlines'));
@@ -25,6 +26,9 @@ import { ToastProvider } from './components/common/Toast';
 const AppContent: React.FC = () => {
   const location = useLocation();
   const { session, loading, signOut, user, profile, updateProfile } = useAuth();
+
+  // Define routes that use the Main Layout (Authenticated)
+  const isPublicRoute = location.pathname === '/login' || location.pathname === '/reset-password';
 
   const handleOnboardingComplete = async () => {
     if (profile) {
@@ -53,8 +57,8 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // If not logged in and not on login page, redirect
-  if (!session && location.pathname !== '/login') {
+  // If not logged in and not on a public page, redirect
+  if (!session && !isPublicRoute) {
     return <Navigate to="/login" replace />;
   }
 
@@ -68,6 +72,15 @@ const AppContent: React.FC = () => {
     return (
       <Routes>
         <Route path="/login" element={<Login />} />
+      </Routes>
+    );
+  }
+
+  // Since ResetPassword component has its own full-page layout, we should render it outside MainLayout.
+  if (location.pathname === '/reset-password') {
+    return (
+      <Routes>
+        <Route path="/reset-password" element={<ResetPassword />} />
       </Routes>
     );
   }
