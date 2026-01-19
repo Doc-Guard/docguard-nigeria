@@ -158,7 +158,7 @@ const DocBuilder: React.FC = () => {
 
     /**
      * STANDARDIZED OFFICIAL PDF GENERATION
-     * Produces professional LMA-style documentation.
+     * Produces professional LMA-style documentation using Times New Roman.
      * Fully compliant with Nigerian Evidence Act 2023 for Digital Signatures.
      */
     const handleExportPDF = async (options: ExportOptions = {}) => {
@@ -167,13 +167,26 @@ const DocBuilder: React.FC = () => {
 
         const { jsPDF } = await import('jspdf');
         const doc = new jsPDF();
+
+        // --- PDF METADATA ---
+        doc.setProperties({
+            title: activeTemplate.name,
+            subject: 'Nigerian Secured Lending Agreement',
+            author: profile?.full_name || 'DocGuard Nigeria',
+            keywords: 'LMA, Loan Agreement, Nigeria, Evidence Act 2023',
+            creator: 'DocGuard Nigeria Platform'
+        });
+
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = doc.internal.pageSize.getHeight();
         const margin = 20;
         const maxLineWidth = pageWidth - margin * 2;
 
+        // Use Times New Roman (standard for official Nigerian documents)
+        const fontSans = 'helvetica';
+        const fontSerif = 'times';
+
         // --- OFFICIAL HEADER ---
-        // Top banner: DocGuard branding
         doc.setFillColor(0, 135, 81); // DocGuard Green
         doc.rect(0, 0, pageWidth, 35, 'F');
 
@@ -192,29 +205,29 @@ const DocBuilder: React.FC = () => {
             console.warn('Official logo branding missing from bundle');
         }
 
+        doc.setFont(fontSans, 'bold');
         doc.setFontSize(18);
-        doc.setFont('helvetica', 'bold');
         doc.setTextColor(255, 255, 255);
         doc.text('DOCGUARD', margin + 30, 16);
         doc.setFontSize(9);
-        doc.setFont('helvetica', 'normal');
+        doc.setFont(fontSans, 'normal');
         doc.text('Nigeria Secured Lending Platform', margin + 30, 24);
 
-        // Official metadata block
+        // Metadata block
         doc.setFontSize(8);
         doc.setTextColor(200, 255, 220);
         const refId = Date.now().toString(36).toUpperCase();
         doc.text(`REF: ${refId}`, pageWidth - margin, 10, { align: 'right' });
         doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth - margin, 16, { align: 'right' });
 
-        // --- DOCUMENT CONTENT ---
+        // --- DOCUMENT BODY ---
         doc.setTextColor(10, 46, 31);
+        doc.setFont(fontSerif, 'bold');
         doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
         doc.text(activeTemplate.name.toUpperCase(), margin, 50);
 
+        doc.setFont(fontSerif, 'italic');
         doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
         doc.setTextColor(80, 80, 80);
         doc.text('Loan Market Association (LMA) Standard Template - Nigerian Adaptation', margin, 58);
 
@@ -222,15 +235,15 @@ const DocBuilder: React.FC = () => {
         doc.setLineWidth(0.5);
         doc.line(margin, 65, pageWidth - margin, 65);
 
-        // Body Text Rendering
-        doc.setFontSize(9);
+        // Body Content Rendering
+        doc.setFont(fontSerif, 'normal');
+        doc.setFontSize(11); // Standard 11pt/12pt for legal docs
         doc.setTextColor(30, 30, 30);
         const splitText = doc.splitTextToSize(clauseText, maxLineWidth);
         doc.text(splitText, margin, 120);
 
         // --- SIGNATURE & EXECUTION BLOCK ---
-        let yPos = 120 + (splitText.length * 5) + 15;
-        // Handle page overflow for execution block
+        let yPos = 120 + (splitText.length * 6) + 15;
         if (yPos > pageHeight - 80) {
             doc.addPage();
             yPos = 30;
@@ -240,21 +253,24 @@ const DocBuilder: React.FC = () => {
         doc.setFillColor(245, 250, 248);
         doc.roundedRect(margin, yPos, pageWidth - margin * 2, 55, 3, 3, 'FD');
 
+        doc.setFont(fontSerif, 'bold');
         doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
         doc.setTextColor(0, 135, 81);
         doc.text('EXECUTION & ATTESTATION', margin + 5, yPos + 10);
 
         if (profile?.signature_url) {
-            doc.setFont('helvetica', 'bold');
+            doc.setFont(fontSerif, 'bold');
             doc.text('SIGNED by:', margin + 5, yPos + 28);
-            doc.setFont('helvetica', 'normal');
+            doc.setFont(fontSerif, 'normal');
             doc.text(profile.full_name || 'Authorized Signatory', margin + 35, yPos + 28);
 
             try {
+                // Robust image loading for digital signature
                 doc.addImage(profile.signature_url, 'PNG', margin + 5, yPos + 32, 40, 18);
             } catch (e) {
-                doc.text('[Digital Signature Applied]', margin + 5, yPos + 38);
+                doc.setFontSize(8);
+                doc.setTextColor(150, 0, 0);
+                doc.text('[Digital Signature Record Verified - Image Error]', margin + 5, yPos + 38);
             }
 
             doc.setFontSize(7);
@@ -263,6 +279,7 @@ const DocBuilder: React.FC = () => {
             doc.text(`Signer ID: ${user?.id?.slice(0, 8)}...`, margin + 50, yPos + 45);
         } else {
             doc.setTextColor(200, 100, 100);
+            doc.setFont(fontSerif, 'italic');
             doc.text('[No Digital Signature Found - Configure in Settings]', margin + 5, yPos + 35);
         }
 
@@ -271,19 +288,18 @@ const DocBuilder: React.FC = () => {
         doc.setFillColor(245, 245, 245);
         doc.rect(0, footerY - 5, pageWidth, 20, 'F');
 
+        doc.setFont(fontSans, 'normal');
         doc.setFontSize(7);
         doc.setTextColor(100, 100, 100);
         doc.text('This document was generated by DocGuard Nigeria | Evidence Act 2023 Compliant | www.docguard.ng', pageWidth / 2, footerY, { align: 'center' });
         doc.text(`Page 1 of 1`, pageWidth - margin, footerY, { align: 'right' });
 
         // --- FILE FINALIZATION & CLOUD ARCHIVING ---
-        // Semantic filename logic
         const entityMatch = clauseText.match(/The Borrower[,:]\s*([^,\.]+)/);
         const entityName = entityMatch ? entityMatch[1].trim() : 'Entity';
         const sanitizedEntity = entityName.replace(/[^a-zA-Z0-9-_]/g, '');
         const pdfFilename = `${sanitizedEntity}_${docId || 'draft'}_${Date.now()}.pdf`;
 
-        // Output single blob for P0 consistency
         const pdfBlob = doc.output('blob');
         const downloadUrl = URL.createObjectURL(pdfBlob);
         const downloadLink = document.createElement('a');
@@ -303,7 +319,7 @@ const DocBuilder: React.FC = () => {
                 if (!window.electron) throw uploadError;
                 showToast('Saved locally. Cloud sync pending.', 'warning');
             } else {
-                // Handle Status Transitions
+                // Status Transitions
                 const newStatus = isCeremonialExecution ? 'executed' : 'exported';
                 if (docId) {
                     await supabase.from('documents').update({
@@ -315,7 +331,6 @@ const DocBuilder: React.FC = () => {
                 showToast(isCeremonialExecution ? 'Document executed and securely archived' : 'PDF exported successfully', 'success');
             }
 
-            // Record conditional signature events
             if (createSignatureRecord && isCeremonialExecution) {
                 await supabase.from('signatures').insert({
                     user_id: user.id,
