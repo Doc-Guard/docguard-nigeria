@@ -1,27 +1,33 @@
-
 import React, { useState, useEffect } from 'react';
-import { Key, Eye, EyeOff, Save, Loader2, Check } from 'lucide-react';
+import { Key, Eye, EyeOff, Save, Loader2, Check, Zap } from 'lucide-react';
+import { GoogleGenAI } from "@google/genai";
 
+/**
+ * ApiKeysSettings Component
+ * Manages third-party API keys and integration secrets.
+ * Keys are stored securely using Electron's safeStorage via IPC.
+ */
 const ApiKeysSettings: React.FC = () => {
     const [showKey, setShowKey] = useState(false);
     const [geminiKey, setGeminiKey] = useState('');
     const [cacAgentId, setCacAgentId] = useState('');
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [isValidating, setIsValidating] = useState(false);
     const [msg, setMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
+    // Load initial secrets on mount
     useEffect(() => {
         const loadSecrets = async () => {
-            if (window.electron) { // Check if in Electron env
+            if (window.electron) {
                 try {
                     const gKey = await window.electron.getSecret('GEMINI_API_KEY');
                     if (gKey.success && gKey.value) setGeminiKey(gKey.value as string);
 
                     const cKey = await window.electron.getSecret('CAC_AGENT_ID');
                     if (cKey.success && cKey.value) setCacAgentId(cKey.value as string);
-
                 } catch (e) {
-                    console.error("Failed to load secrets", e);
+                    console.error("Failed to load secrets:", e);
                 }
             }
             setIsLoading(false);
@@ -29,6 +35,36 @@ const ApiKeysSettings: React.FC = () => {
         loadSecrets();
     }, []);
 
+    /**
+     * Validates the provided Gemini API key by attempting a lightweight generation request.
+     */
+    const handleValidate = async () => {
+        if (!geminiKey) {
+            setMsg({ type: 'error', text: 'Please enter a Gemini API Key first.' });
+            return;
+        }
+        setIsValidating(true);
+        setMsg(null);
+        try {
+            const ai = new GoogleGenAI({ apiKey: geminiKey });
+            // Using ai.models directly to match project SDK pattern
+            // @ts-ignore
+            await ai.models.generateContent({
+                model: "gemini-3-flash-preview",
+                contents: "Test connection"
+            });
+            setMsg({ type: 'success', text: 'Valid API Key! Connection successful.' });
+        } catch (e: any) {
+            console.error("API Key Validation Failed:", e);
+            setMsg({ type: 'error', text: 'Validation failed: ' + (e.message || 'Unknown error') });
+        } finally {
+            setIsValidating(false);
+        }
+    };
+
+    /**
+     * Persists the API keys to secure local storage.
+     */
     const handleSave = async () => {
         setIsSaving(true);
         setMsg(null);
@@ -73,6 +109,7 @@ const ApiKeysSettings: React.FC = () => {
                 )}
 
                 <div className="space-y-6">
+                    {/* Google Gemini AI Configuration */}
                     <div className="space-y-2">
                         <label className="text-[10px] font-black text-emerald-950 uppercase tracking-widest ml-1 flex items-center gap-2">
                             Google Gemini AI Key
@@ -93,9 +130,20 @@ const ApiKeysSettings: React.FC = () => {
                                 {showKey ? <EyeOff size={18} /> : <Eye size={18} />}
                             </button>
                         </div>
-                        <p className="text-[10px] text-emerald-600/60 font-medium ml-1">Used for Compliance Logic and Risk Analysis.</p>
+                        <div className="flex justify-between items-center mt-2">
+                            <p className="text-[10px] text-emerald-600/60 font-medium ml-1">Used for Compliance Logic and Risk Analysis.</p>
+                            <button
+                                onClick={handleValidate}
+                                disabled={isValidating || !geminiKey}
+                                className="text-[10px] font-bold text-[#008751] hover:text-emerald-700 flex items-center gap-1 disabled:opacity-50"
+                            >
+                                {isValidating ? <Loader2 size={10} className="animate-spin" /> : <Zap size={10} />}
+                                {isValidating ? 'Testing...' : 'Test Connection'}
+                            </button>
+                        </div>
                     </div>
 
+                    {/* CAC Agent Configuration */}
                     <div className="space-y-2">
                         <label className="text-[10px] font-black text-emerald-950 uppercase tracking-widest ml-1">
                             CAC Portal Agent ID

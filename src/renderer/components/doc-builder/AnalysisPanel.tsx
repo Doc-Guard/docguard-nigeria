@@ -25,11 +25,12 @@ const AnalysisPanel: React.FC<AnalysisPanelProps> = ({ clauseText, activeTemplat
     const [isRewriting, setIsRewriting] = useState(false);
     const [rewriteInstruction, setRewriteInstruction] = useState('');
     const [showRewriteInput, setShowRewriteInput] = useState(false);
+    const [persona, setPersona] = useState<'neutral' | 'lender' | 'borrower'>('neutral');
 
     const handleAnalyze = async () => {
         setIsAnalyzing(true);
         try {
-            const result = await analyzeClause(clauseText, `Facility Agreement - ${activeTemplate}`);
+            const result = await analyzeClause(clauseText, `Facility Agreement - ${activeTemplate}`, persona);
             setAnalysis(result);
         } catch (err: any) {
             console.error(err);
@@ -77,6 +78,24 @@ const AnalysisPanel: React.FC<AnalysisPanelProps> = ({ clauseText, activeTemplat
                             <MessageSquare size={32} />
                         </div>
                         <p className="text-sm font-bold text-emerald-900/60 mb-6 text-center">Analyze this clause against Nigeria's latest legal frameworks.</p>
+
+                        {/* Persona Selector */}
+                        <div className="flex bg-emerald-50/50 p-1 rounded-lg mb-4 border border-emerald-100">
+                            {(['lender', 'neutral', 'borrower'] as const).map((p) => (
+                                <button
+                                    key={p}
+                                    onClick={() => setPersona(p)}
+                                    className={`flex-1 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all ${
+                                        persona === p
+                                        ? 'bg-white text-[#008751] shadow-sm ring-1 ring-emerald-100'
+                                        : 'text-emerald-900/40 hover:bg-emerald-50'
+                                    }`}
+                                >
+                                    {p} View
+                                </button>
+                            ))}
+                        </div>
+
                         <div className="space-y-3">
                             <button
                                 onClick={handleAnalyze}

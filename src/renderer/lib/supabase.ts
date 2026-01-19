@@ -2,7 +2,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Fallback values prevent the 'supabaseUrl is required' crash if environment variables aren't provided yet
-import { Secrets } from "../src/config/secrets";
+import { Secrets } from "@/config/secrets";
 
 let _supabase: any = null;
 

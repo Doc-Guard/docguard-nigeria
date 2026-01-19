@@ -3,8 +3,8 @@ import ReactDOM from 'react-dom/client';
 import { HashRouter, BrowserRouter } from 'react-router-dom';
 import App from './App';
 // import './index.css';
-import './src/tailwind.css';
-import { Secrets } from './src/config/secrets';
+import '@/tailwind.css';
+import { Secrets } from '@/config/secrets';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

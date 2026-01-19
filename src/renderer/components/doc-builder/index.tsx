@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -24,27 +23,33 @@ import { KYCBlockingMessage } from '../common/KYCStatusBadge';
 import { getLoanKYCStatus, LoanKYCStatus } from '../../services/kycPersistence';
 import { LMA_TEMPLATES, LMATemplate, LMAClause, LMA_SECURED_TERM_FACILITY } from '../../lib/lmaTemplates';
 
+/**
+ * DocBuilder Component
+ * Intelligent document assembly engine supporting LMA templates,
+ * variable injection, AI compliance analysis, and digital execution.
+ * Standardized for Nigerian Secured Lending.
+ */
 const DocBuilder: React.FC = () => {
     const { user, profile } = useAuth();
     const { showToast } = useToast();
     const location = useLocation();
     const navigate = useNavigate();
 
-    // Template State
+    // --- State Management ---
     const [activeTemplate, setActiveTemplate] = useState<LMATemplate>(LMA_SECURED_TERM_FACILITY);
     const [selectedClause, setSelectedClause] = useState<LMAClause | null>(null);
     const [clauseText, setClauseText] = useState('');
-
-    // Document State
     const [isSaving, setIsSaving] = useState(false);
     const [lastSaved, setLastSaved] = useState<string | null>(null);
     const [isSigningModalOpen, setIsSigningModalOpen] = useState(false);
     const [isLoanSelectorOpen, setIsLoanSelectorOpen] = useState(false);
     const [docId, setDocId] = useState<string | null>(null);
-    const [linkedLoanId, setLinkedLoanId] = useState<string | null>(null);
+    const [linkedLoan, setLinkedLoan] = useState<any | null>(null);
     const [kycStatus, setKycStatus] = useState<LoanKYCStatus | null>(null);
 
-    // Initialize with first clause
+    const linkedLoanId = linkedLoan?.id || null;
+
+    // Initialize with first clause from default template
     useEffect(() => {
         if (activeTemplate.sections.length > 0 && activeTemplate.sections[0].clauses.length > 0) {
             const firstClause = activeTemplate.sections[0].clauses[0];
@@ -53,43 +58,42 @@ const DocBuilder: React.FC = () => {
         }
     }, [activeTemplate]);
 
-    // Load existing draft or handle new loan context
+    /**
+     * Effect Hook: Handles context loading from navigation state (Loan ID, Doc ID).
+     * Supports seamless "Originate -> Build" workflow.
+     */
     useEffect(() => {
         if (!user) return;
 
-        // If navigated from Origination Wizard
         if (location.state?.loanId) {
-            setDocId(null); // New doc for this loan
-            setLinkedLoanId(location.state.loanId);
-            // Check KYC status for linked loan
+            setDocId(null);
+            if (location.state?.loan) {
+                 setLinkedLoan(location.state.loan);
+            } else if (location.state?.loanId) {
+                 setLinkedLoan({ id: location.state.loanId, borrower_name: location.state.borrower || 'Unknown' });
+            }
+
             getLoanKYCStatus(location.state.loanId).then(setKycStatus);
+
             if (location.state?.borrower) {
-                // Check if we have an RC number in the state passed from Origination (we should update Origination to pass it)
-                // But for now, let's just use the borrower name. Better yet, let's make sure Origination passes it.
-                // Actually, OriginationWizard passes `loanId` and `borrower` only currently (line 67 of OriginationWizard).
-                // I should update OriginationWizard to pass the full entity string or ID so we can fetch it?
-                // Or just rely on the user to use "Link Loan" in DocBuilder.
-                // But for seamless "Originate -> DocBuilder" flow:
                 setClauseText(prev => prev.replace(/The Borrower/g, location.state.borrower));
             }
-        } else if (location.state?.docId) {
+        }
+        else if (location.state?.docId) {
             const fetchSpecificDraft = async () => {
                 const { data } = await supabase.from('documents').select('*').eq('id', location.state.docId).single();
                 if (data) {
                     setDocId(data.id);
                     setClauseText(data.content || '');
-                    // Load template by ID
                     const templateId = data.template_type || 'lma-secured-term';
                     const loadedTemplate = LMA_TEMPLATES.find(t => t.id === templateId);
-                    if (loadedTemplate) {
-                        setActiveTemplate(loadedTemplate);
-                    }
+                    if (loadedTemplate) setActiveTemplate(loadedTemplate);
                     setLastSaved(new Date(data.updated_at).toLocaleTimeString());
                 }
             };
             fetchSpecificDraft();
-        } else {
-            // Fallback to latest
+        }
+        else {
             const fetchLatestDraft = async () => {
                 const { data } = await supabase
                     .from('documents')
@@ -102,12 +106,9 @@ const DocBuilder: React.FC = () => {
                 if (data) {
                     setDocId(data.id);
                     setClauseText(data.content || '');
-                    // Load template by ID
                     const templateId = data.template_type || 'lma-secured-term';
                     const loadedTemplate = LMA_TEMPLATES.find(t => t.id === templateId);
-                    if (loadedTemplate) {
-                        setActiveTemplate(loadedTemplate);
-                    }
+                    if (loadedTemplate) setActiveTemplate(loadedTemplate);
                     setLastSaved(new Date(data.updated_at).toLocaleTimeString());
                 }
             };
@@ -115,6 +116,9 @@ const DocBuilder: React.FC = () => {
         }
     }, [user, location.state]);
 
+    /**
+     * Persists the current document state to Supabase cloud storage.
+     */
     const handleSaveToCloud = async () => {
         if (!user) return;
         setIsSaving(true);
@@ -123,7 +127,7 @@ const DocBuilder: React.FC = () => {
                 user_id: user.id,
                 loan_id: location.state?.loanId || null,
                 content: clauseText,
-                template_type: activeTemplate.id, // Save only the ID
+                template_type: activeTemplate.id,
                 status: 'draft',
                 updated_at: new Date().toISOString()
             };
@@ -146,34 +150,34 @@ const DocBuilder: React.FC = () => {
         }
     };
 
-    // PDF Export Options Interface
+    // PDF Export Configuration
     interface ExportOptions {
         isCeremonialExecution?: boolean;
         createSignatureRecord?: boolean;
     }
 
+    /**
+     * STANDARDIZED OFFICIAL PDF GENERATION
+     * Produces professional LMA-style documentation.
+     * Fully compliant with Nigerian Evidence Act 2023 for Digital Signatures.
+     */
     const handleExportPDF = async (options: ExportOptions = {}) => {
         const { isCeremonialExecution = false, createSignatureRecord = false } = options;
-
         if (!user) return;
 
-        // Dynamic import jspdf
         const { jsPDF } = await import('jspdf');
-
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = doc.internal.pageSize.getHeight();
         const margin = 20;
         const maxLineWidth = pageWidth - margin * 2;
 
-        // === HEADER WITH DOCGUARD BRANDING ===
-        // Green header bar
-        doc.setFillColor(0, 135, 81); // DocGuard green #008751
+        // --- OFFICIAL HEADER ---
+        // Top banner: DocGuard branding
+        doc.setFillColor(0, 135, 81); // DocGuard Green
         doc.rect(0, 0, pageWidth, 35, 'F');
 
-        // Load and embed logo
         try {
-            // Fetch logo from public folder (Vite serves public assets at root)
             const logoResponse = await fetch('/logo.png');
             if (logoResponse.ok) {
                 const logoBlob = await logoResponse.blob();
@@ -182,14 +186,12 @@ const DocBuilder: React.FC = () => {
                     reader.onloadend = () => resolve(reader.result as string);
                     reader.readAsDataURL(logoBlob);
                 });
-                // Add logo image (white background rounded square with leaf)
                 doc.addImage(logoDataUrl, 'PNG', margin, 5, 25, 25);
             }
         } catch (e) {
-            console.warn('Could not load logo:', e);
+            console.warn('Official logo branding missing from bundle');
         }
 
-        // Logo text (positioned after logo)
         doc.setFontSize(18);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(255, 255, 255);
@@ -198,57 +200,37 @@ const DocBuilder: React.FC = () => {
         doc.setFont('helvetica', 'normal');
         doc.text('Nigeria Secured Lending Platform', margin + 30, 24);
 
-        // Document reference number
+        // Official metadata block
         doc.setFontSize(8);
         doc.setTextColor(200, 255, 220);
-        doc.text(`REF: ${Date.now().toString(36).toUpperCase()}`, pageWidth - margin, 10, { align: 'right' });
+        const refId = Date.now().toString(36).toUpperCase();
+        doc.text(`REF: ${refId}`, pageWidth - margin, 10, { align: 'right' });
         doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth - margin, 16, { align: 'right' });
 
-        // === DOCUMENT TITLE ===
-        doc.setTextColor(10, 46, 31); // Dark green
+        // --- DOCUMENT CONTENT ---
+        doc.setTextColor(10, 46, 31);
         doc.setFontSize(14);
         doc.setFont('helvetica', 'bold');
         doc.text(activeTemplate.name.toUpperCase(), margin, 50);
 
-        // Subtitle
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(80, 80, 80);
         doc.text('Loan Market Association (LMA) Standard Template - Nigerian Adaptation', margin, 58);
 
-        // Horizontal divider
         doc.setDrawColor(0, 135, 81);
         doc.setLineWidth(0.5);
         doc.line(margin, 65, pageWidth - margin, 65);
 
-        // === PARTIES SECTION ===
-        doc.setFontSize(11);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(0, 135, 81);
-        doc.text('PARTIES TO THIS AGREEMENT', margin, 75);
-
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(50, 50, 50);
-        doc.text('The Lender (as defined herein)', margin, 83);
-        doc.text('The Borrower (as defined herein)', margin, 90);
-        doc.text('The Security Agent (if applicable)', margin, 97);
-
-        // === MAIN CONTENT ===
-        doc.setFontSize(11);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(0, 135, 81);
-        doc.text('TERMS AND CONDITIONS', margin, 110);
-
+        // Body Text Rendering
         doc.setFontSize(9);
-        doc.setFont('helvetica', 'normal');
         doc.setTextColor(30, 30, 30);
-
         const splitText = doc.splitTextToSize(clauseText, maxLineWidth);
         doc.text(splitText, margin, 120);
 
-        // === SIGNATURE SECTION ===
+        // --- SIGNATURE & EXECUTION BLOCK ---
         let yPos = 120 + (splitText.length * 5) + 15;
+        // Handle page overflow for execution block
         if (yPos > pageHeight - 80) {
             doc.addPage();
             yPos = 30;
@@ -262,9 +244,6 @@ const DocBuilder: React.FC = () => {
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(0, 135, 81);
         doc.text('EXECUTION & ATTESTATION', margin + 5, yPos + 10);
-
-        doc.setFontSize(10);
-        doc.text('IN WITNESS WHEREOF, the parties have executed this Agreement.', margin + 5, yPos + 18);
 
         if (profile?.signature_url) {
             doc.setFont('helvetica', 'bold');
@@ -287,7 +266,7 @@ const DocBuilder: React.FC = () => {
             doc.text('[No Digital Signature Found - Configure in Settings]', margin + 5, yPos + 35);
         }
 
-        // === FOOTER ===
+        // --- OFFICIAL FOOTER ---
         const footerY = pageHeight - 15;
         doc.setFillColor(245, 245, 245);
         doc.rect(0, footerY - 5, pageWidth, 20, 'F');
@@ -297,20 +276,15 @@ const DocBuilder: React.FC = () => {
         doc.text('This document was generated by DocGuard Nigeria | Evidence Act 2023 Compliant | www.docguard.ng', pageWidth / 2, footerY, { align: 'center' });
         doc.text(`Page 1 of 1`, pageWidth - margin, footerY, { align: 'right' });
 
-        // Extract Entity Name for meaningful filename
+        // --- FILE FINALIZATION & CLOUD ARCHIVING ---
+        // Semantic filename logic
         const entityMatch = clauseText.match(/The Borrower[,:]\s*([^,\.]+)/);
         const entityName = entityMatch ? entityMatch[1].trim() : 'Entity';
         const sanitizedEntity = entityName.replace(/[^a-zA-Z0-9-_]/g, '');
-        const safeDocId = docId || 'draft';
-        const timestamp = Date.now();
+        const pdfFilename = `${sanitizedEntity}_${docId || 'draft'}_${Date.now()}.pdf`;
 
-        // Format: Entity_DocID_Timestamp.pdf (Semantic & Unique)
-        const pdfFilename = `${sanitizedEntity}_${safeDocId}_${timestamp}.pdf`;
-
-        // === SINGLE BLOB GENERATION (P0 Fix) ===
+        // Output single blob for P0 consistency
         const pdfBlob = doc.output('blob');
-
-        // Download using blob URL
         const downloadUrl = URL.createObjectURL(pdfBlob);
         const downloadLink = document.createElement('a');
         downloadLink.href = downloadUrl;
@@ -320,41 +294,28 @@ const DocBuilder: React.FC = () => {
         document.body.removeChild(downloadLink);
         setTimeout(() => URL.revokeObjectURL(downloadUrl), 100);
 
-        // Upload to Cloud (Web & Electron backup)
         try {
             const fileName = `${user.id}/${pdfFilename}`;
-
-            const { error: uploadError } = await supabase.storage
-                .from('documents')
-                .upload(fileName, pdfBlob, {
-                    contentType: 'application/pdf'
-                });
+            const { error: uploadError } = await supabase.storage.from('documents').upload(fileName, pdfBlob, { contentType: 'application/pdf' });
 
             if (uploadError) {
                 console.warn("Cloud upload failed (offline mode?):", uploadError);
-                if (!window.electron) throw uploadError; // Only throw if not in Electron (where local save succeeded)
+                if (!window.electron) throw uploadError;
                 showToast('Saved locally. Cloud sync pending.', 'warning');
             } else {
-                // === STATUS TRANSITIONS (P0 Fix) ===
+                // Handle Status Transitions
                 const newStatus = isCeremonialExecution ? 'executed' : 'exported';
-
                 if (docId) {
-                    await supabase
-                        .from('documents')
-                        .update({
-                            file_url: fileName,
-                            status: newStatus,
-                            updated_at: new Date().toISOString()
-                        })
-                        .eq('id', docId);
+                    await supabase.from('documents').update({
+                        file_url: fileName,
+                        status: newStatus,
+                        updated_at: new Date().toISOString()
+                    }).eq('id', docId);
                 }
-                showToast(isCeremonialExecution
-                    ? 'Document executed and securely archived'
-                    : 'PDF exported successfully',
-                    'success');
+                showToast(isCeremonialExecution ? 'Document executed and securely archived' : 'PDF exported successfully', 'success');
             }
 
-            // === CONDITIONAL SIGNATURE RECORDS (P0 Fix) ===
+            // Record conditional signature events
             if (createSignatureRecord && isCeremonialExecution) {
                 await supabase.from('signatures').insert({
                     user_id: user.id,
@@ -363,19 +324,13 @@ const DocBuilder: React.FC = () => {
                     ip_address: 'CLIENT_IP_MASKED'
                 });
             }
-
         } catch (uploadErr: any) {
-            console.error('Export failed', uploadErr);
-            if (!window.electron) {
-                showToast('Export Failed: ' + uploadErr.message, 'error');
-            }
+            console.error('Official export failed:', uploadErr);
+            if (!window.electron) showToast('Export Failed: ' + uploadErr.message, 'error');
         }
     };
 
-    // Quick export handler (no signature record)
     const handleQuickExport = () => handleExportPDF({ isCeremonialExecution: false, createSignatureRecord: false });
-
-    // Ceremonial execution handler (with signature record)
     const handleCeremonialExecution = () => handleExportPDF({ isCeremonialExecution: true, createSignatureRecord: true });
 
     return (
@@ -392,14 +347,11 @@ const DocBuilder: React.FC = () => {
                 onClose={() => setIsLoanSelectorOpen(false)}
                 onSelect={(loan) => {
                     setDocId(null);
-                    setLinkedLoanId(loan.id);
-                    // Check KYC status for newly linked loan
+                    setLinkedLoan(loan);
                     getLoanKYCStatus(loan.id).then(setKycStatus);
-                    const entityString = loan.rc_number
-                        ? `${loan.borrower_name} (with Registration No. ${loan.rc_number})`
-                        : loan.borrower_name;
+                    const entityString = loan.rc_number ? `${loan.borrower_name} (RC ${loan.rc_number})` : loan.borrower_name;
                     setClauseText(prev => prev.replace(/The Borrower/g, entityString));
-                    showToast(`Switched context to loan: ${loan.borrower_name}`, 'success');
+                    showToast(`Context: ${loan.borrower_name}`, 'success');
                 }}
             />
 
@@ -441,9 +393,8 @@ const DocBuilder: React.FC = () => {
                                 const result = await window.electron.saveFile(clauseText, `${activeTemplate.name.replace(/\s+/g, '_')}.txt`);
                                 if (result.success) showToast(`File saved: ${result.filePath}`, 'success');
                             } else {
-                                // Web Mode Fallback (or remove if only Electron supported)
                                 handleSaveToCloud();
-                                showToast("Saved to Cloud (Web Mode)", 'info');
+                                showToast("Saved to Cloud", 'info');
                             }
                         }}
                         className="flex items-center gap-2 px-6 py-2.5 bg-[#008751] text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-800 shadow-lg shadow-emerald-900/20 transition-all active:scale-95"
@@ -456,7 +407,7 @@ const DocBuilder: React.FC = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                 <div className="space-y-6">
-                    <VariablePanel content={clauseText} onUpdate={setClauseText} />
+                    <VariablePanel content={clauseText} onUpdate={setClauseText} loanContext={linkedLoan} />
 
                     <ClauseLibrary
                         activeTemplate={activeTemplate}
@@ -470,12 +421,10 @@ const DocBuilder: React.FC = () => {
                     />
                 </div>
 
-                {/* Center: Editor */}
                 <div className="lg:col-span-2 space-y-4">
                     <Editor content={clauseText} setContent={setClauseText} />
                 </div>
 
-                {/* Right: AI Analysis & Execution */}
                 <div className="space-y-6">
                     <AnalysisPanel
                         clauseText={clauseText}
@@ -488,7 +437,6 @@ const DocBuilder: React.FC = () => {
                             <h4 className="font-black text-xl mb-3 tracking-tight">Execution Hub</h4>
                             <p className="text-emerald-400 text-xs font-medium mb-4 leading-relaxed">Evidence Act 2023 certified e-signature integration for secure closing.</p>
 
-                            {/* KYC Blocking Message */}
                             {linkedLoanId && kycStatus && !kycStatus.isFullyVerified && (
                                 <KYCBlockingMessage
                                     status={kycStatus}
@@ -522,7 +470,6 @@ const DocBuilder: React.FC = () => {
                                 </button>
                                 <button
                                     onClick={async () => {
-                                        // Navigate to Registry with document context
                                         const safeDocId = docId || (await handleSaveToCloud());
                                         if (!safeDocId) return;
 

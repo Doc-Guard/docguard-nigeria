@@ -5,7 +5,7 @@ import { Cpu, Lock, Activity, Loader2, Briefcase } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../auth/AuthContext';
 import { useToast } from '../common/Toast';
-import { RPAActivity } from '../../types';
+import { RPAActivity } from '@shared/types';
 import LogTerminal from './LogTerminal';
 import PayloadSidebar from './PayloadSidebar';
 import FilingHistory from './FilingHistory';
