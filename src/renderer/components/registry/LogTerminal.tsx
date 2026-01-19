@@ -1,7 +1,7 @@
 
 import React, { useRef, useEffect } from 'react';
 import { Terminal, Cpu, ShieldCheck } from 'lucide-react';
-import { RPAActivity } from '../../types';
+import { RPAActivity } from '@shared/types';
 
 interface LogTerminalProps {
     logs: RPAActivity[];
